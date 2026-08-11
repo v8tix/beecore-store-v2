@@ -1,0 +1,138 @@
+{{define "page:title"}}Signup{{end}}
+{{define "page:main"}}
+<main class="main" id="top">
+    <div class="container-fluid">
+        <div class="row min-vh-100 flex-center g-0">
+            <div class="col-lg-8 col-xxl-5 py-3 position-relative"><img class="bg-auth-circle-shape"
+                                                                        src="../../static/img/icons/spot-illustrations/bg-shape.png"
+                                                                        alt="" width="250"><img
+                    class="bg-auth-circle-shape-2" src="../../static/img/icons/spot-illustrations/shape-1.png" alt=""
+                    width="150">
+                <div class="card overflow-hidden z-1">
+                    <div class="card-body p-0">
+                        <div class="row g-0 h-100">
+                            <div class="col-md-5 text-center bg-card-gradient">
+                                <div class="position-relative p-4 pt-md-5 pb-md-7" data-bs-theme="light">
+                                    <div class="bg-holder bg-auth-card-shape"
+                                         style="background-image:url(../../static/img/icons/spot-illustrations/half-circle.png);">
+                                    </div>
+                                    <div class="z-1 position-relative"><a
+                                            class="link-light mb-4 font-sans-serif fs-4 d-inline-block fw-bolder"
+                                            href="../../../index.html">falcon</a>
+                                        <p class="opacity-75 text-white">With the power of Falcon, you can now focus
+                                            only on functionaries for your digital products, while leaving the UI design
+                                            on us!</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 mb-4 mt-md-4 mb-md-5" data-bs-theme="light">
+                                    <p class="pt-3 text-white">Have an account?<br><a
+                                            class="btn btn-outline-light mt-2 px-4"
+                                            href="/login">Log In</a></p>
+                                </div>
+                            </div>
+                            <div class="col-md-7 d-flex flex-center">
+                                <div class="p-4 p-md-5 flex-grow-1">
+                                    <h3>Register</h3>
+                                    <form method="POST" action="/signup">
+                                        <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+                                        <div class="mb-3">
+                                            <div class="row gx-2">
+                                                <div class="mb-3 col-sm-12">
+                                                    {{if .Form.Validator.FieldErrors.FirstName}}
+                                                    <div class="form-floating">
+                                                        <input id="card-first-name" class="form-control is-invalid"  type="text"
+                                                               autocomplete="on" name="FirstName" value="{{.Form.FirstName}}"/>
+                                                        {{with .Form.Validator.FieldErrors.FirstName}}
+                                                        <label for="card-first-name">{{.}}</label>
+                                                        {{end}}
+                                                    </div>
+                                                    {{else}}
+                                                    <label class="form-label" for="card-first-name">First Name*</label>
+                                                    <input id="card-first-name" class="form-control" type="text" autocomplete="on"
+                                                           name="FirstName" value="{{.Form.FirstName}}"/>
+                                                    {{end}}
+                                                </div>
+                                                <div class="mb-3 col-sm-12">
+                                                    {{if .Form.Validator.FieldErrors.LastName}}
+                                                    <div class="form-floating">
+                                                        <input id="card-last-name" class="form-control is-invalid"  type="text"
+                                                               autocomplete="on" name="LastName" value="{{.Form.LastName}}"/>
+                                                        {{with .Form.Validator.FieldErrors.LastName}}
+                                                        <label for="card-last-name">{{.}}</label>
+                                                        {{end}}
+                                                    </div>
+                                                    {{else}}
+                                                    <label class="form-label" for="card-last-name">Last Name*</label>
+                                                    <input id="card-last-name" class="form-control" type="text" autocomplete="on"
+                                                           name="LastName" value="{{.Form.LastName}}"/>
+                                                    {{end}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            {{if .Form.Validator.FieldErrors.Email}}
+                                            <div class="form-floating">
+                                                <input id="card-email" class="form-control is-invalid"  type="email"
+                                                       autocomplete="on" name="Email" value="{{.Form.Email}}"/>
+                                                {{with .Form.Validator.FieldErrors.Email}}
+                                                <label for="card-email">{{.}}</label>
+                                                {{end}}
+                                            </div>
+                                            {{else}}
+                                            <label class="form-label" for="card-email">Email address*</label>
+                                            <input id="card-email" class="form-control" type="email" autocomplete="on"
+                                                   name="Email" value="{{.Form.Email}}"/>
+                                            {{end}}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{if .Form.Validator.FieldErrors.Password}}
+                                            <div class="form-floating">
+                                                <input id="card-password" class="form-control is-invalid"  type="password"
+                                                       autocomplete="on" name="Password" value="{{.Form.Password}}"/>
+                                                {{with .Form.Validator.FieldErrors.Password}}
+                                                <label for="card-password">{{.}}</label>
+                                                {{end}}
+                                            </div>
+                                            {{else}}
+                                            <label class="form-label" for="card-password">Password*</label>
+                                            <input id="card-password" class="form-control" type="password" autocomplete="on"
+                                                   name="Password" value="{{.Form.Password}}"/>
+                                            {{end}}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{if .Form.Validator.FieldErrors.ConfirmPassword}}
+                                            <div class="form-floating">
+                                                <input id="card-confirm-password" class="form-control is-invalid"  type="password"
+                                                       autocomplete="on" name="ConfirmPassword" value="{{.Form.ConfirmPassword}}"/>
+                                                {{with .Form.Validator.FieldErrors.ConfirmPassword}}
+                                                <label for="card-confirm-password">{{.}}</label>
+                                                {{end}}
+                                            </div>
+                                            {{else}}
+                                            <label class="form-label" for="card-confirm-password">Confirm Password*</label>
+                                            <input id="card-confirm-password" class="form-control" type="password" autocomplete="on"
+                                                   name="ConfirmPassword" value="{{.Form.ConfirmPassword}}"/>
+                                            {{end}}
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox"
+                                                   id="card-register-checkbox"/>
+                                            <label class="form-label" for="card-register-checkbox">I accept the <a
+                                                    href="#!">terms </a>and <a href="#!">privacy policy</a></label>
+                                        </div>
+                                        <div class="mb-3">
+                                            <button class="btn btn-primary d-block w-100 mt-3" type="submit"
+                                                    name="submit">Register
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{{end}}

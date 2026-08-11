@@ -1,0 +1,97 @@
+{{define "page:title"}}Done{{end}}
+{{define "page:main"}}
+<main class="main" id="top">
+    <div class="container" data-layout="container">
+        <script>
+            const isFluid = JSON.parse(localStorage.getItem('isFluid'));
+            if (isFluid) {
+                var container = document.querySelector('[data-layout]');
+                container.classList.remove('container');
+                container.classList.add('container-fluid');
+            }
+        </script>
+        <div class="row justify-content-center pt-6">
+            <div class="col-sm-10 col-lg-7 col-xxl-5"><a class="d-flex flex-center mb-4" href="/"><img class="me-2"
+                                                                                                       src="/static/img/icons/spot-illustrations/falcon.png"
+                                                                                                       alt=""
+                                                                                                       width="45"/><span
+                    class="font-sans-serif text-primary fw-bolder fs-5 d-inline-block">falcon</span></a>
+                <div class="card theme-wizard mb-5" id="wizard">
+                    <div class="card-header bg-body-tertiary pt-3 pb-2">
+                        <ul class="nav justify-content-between nav-wizard">
+                            <li class="nav-item"><a class="nav-link  fw-semi-bold" href="#bootstrap-wizard-tab1"
+                                                    data-bs-toggle="tab" data-wizard-step="1"><span
+                                    class="nav-item-circle-parent"><span class="nav-item-circle"><span
+                                    class="fas fa-user"></span></span></span><span class="d-none d-md-block mt-1 fs-10">Personal</span></a>
+                            </li>
+                            <li class="nav-item"><a class="nav-link  fw-semi-bold" href="#bootstrap-wizard-tab2"
+                                                    data-bs-toggle="tab" data-wizard-step="2"><span
+                                    class="nav-item-circle-parent"><span class="nav-item-circle"><span
+                                    class="fas fa-store"></span></span></span><span
+                                    class="d-none d-md-block mt-1 fs-10">Store</span></a></li>
+                            <li class="nav-item"><a class="nav-link active fw-semi-bold" href="#bootstrap-wizard-tab3"
+                                                    data-bs-toggle="tab" data-wizard-step="3"><span
+                                    class="nav-item-circle-parent"><span class="nav-item-circle"><span
+                                    class="fas fa-thumbs-up"></span></span></span><span
+                                    class="d-none d-md-block mt-1 fs-10">Done</span></a></li>
+                        </ul>
+                    </div>
+                    <div class="card-body py-4" id="wizard-controller">
+                        <div class="tab-content">
+                            <div class="tab-pane px-sm-3 px-md-5" role="tabpanel"
+                                 aria-labelledby="bootstrap-wizard-tab1" id="bootstrap-wizard-tab1">
+                            </div>
+                        </div>
+                        <div class="tab-pane px-sm-3 px-md-5" role="tabpanel" aria-labelledby="bootstrap-wizard-tab2"
+                             id="bootstrap-wizard-tab2">
+                        </div>
+                        <div class="tab-pane active px-sm-3 px-md-5" role="tabpanel"
+                             aria-labelledby="bootstrap-wizard-tab3"
+                             id="bootstrap-wizard-tab3">
+                            <div class="card mb-3">
+                                <div class="card-body bg-body-tertiary">
+                                    <form class="row g-3" novalidate="novalidate" id="done-wizard">
+                                        <div class="col-lg-12">
+                                            <div class="wizard-lottie-wrapper">
+                                                <div class="lottie wizard-lottie mx-auto my-3"
+                                                     data-options='{"path":"/static/img/animated-icons/celebration.json"}'></div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex flex-center col-lg-12">
+                                            <h4 class="mb-1 d-flex flex-center">Congratulations!</h4>
+                                        </div>
+                                        <div class="d-flex flex-center col-lg-12">
+                                            <p>Now you can add some products and add additional information using the
+                                                left bar</p>
+                                        </div>
+
+                                        <div class="col-12 d-flex flex-center">
+                                            <a class="btn btn-primary" href="/search">Start</a>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="error-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 400px">
+                    <div class="modal-content position-relative p-5">
+                        <div class="d-flex align-items-center">
+                            <div class="lottie me-3"
+                                 data-options='{"path":"/static/img/animated-icons/warning-light.json"}'></div>
+                            <div class="flex-1">
+                                <button class="btn btn-link text-danger position-absolute top-0 end-0 mt-2 me-2"
+                                        data-bs-dismiss="modal"><span class="fas fa-times"></span></button>
+                                <p class="mb-0">You don't have access to the link. Please try again.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{{end}}
+

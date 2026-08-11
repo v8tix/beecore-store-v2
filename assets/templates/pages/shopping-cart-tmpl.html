@@ -1,0 +1,224 @@
+{{define "page:title"}}Cart{{end}}
+{{define "page:main"}}
+<!-- ===============================================-->
+<!--    Main Content-->
+<!-- ===============================================-->
+<main class="main" id="top">
+    <div class="container" data-layout="container">
+        <script>
+            const isFluid = JSON.parse(localStorage.getItem('isFluid'));
+            if (isFluid) {
+                const container = document.querySelector('[data-layout]');
+                container.classList.remove('container');
+                container.classList.add('container-fluid');
+            }
+        </script>
+        <div class="content">
+            <form method="POST" action="/basket">
+                <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+                <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand">
+                    {{if not .Form.IsMobile}}
+                    <a class="navbar-brand me-1 me-sm-3">
+                        <div class="d-flex align-items-center">
+                            <img class="me-2"
+                                 src="/static/img/beecore/beecore-logomark.png"
+                                 alt=""
+                                 width="40"/>
+                            <span class="logo-text">BeeCore</span>
+                        </div>
+                    </a>
+                    {{else}}
+                    <a class="navbar-brand me-1 me-sm-3">
+                        <div class="d-flex align-items-center">
+                            <img class="me-2"
+                                 src="/static/img/beecore/beecore-logomark.png"
+                                 alt=""
+                                 width="30"/>
+                            <span class="logo-text">BeeCore</span>
+                        </div>
+                    </a>
+                    {{end}}
+
+                    <ul class="navbar-nav navbar-nav-icons ms-auto flex-row align-items-center">
+                        <li class="nav-item dropdown"><a class="nav-link pe-0 ps-2" id="navbarDropdownUser"
+                                                         role="button" data-bs-toggle="dropdown"
+                                                         aria-haspopup="true"
+                                                         aria-expanded="false">
+                            <div class="avatar avatar-xl">
+                                <img class="rounded-circle" src="/static/img/team/3-thumb.png" alt=""/>
+
+                            </div>
+                        </a>
+                            <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end py-0"
+                                 aria-labelledby="navbarDropdownUser">
+                                <div class="bg-white dark__bg-1000 rounded-2 py-2">
+                                    <!--                                    <a class="dropdown-item fw-bold text-warning" href="#!"><span-->
+                                    <!--                                            class="fas fa-crown me-1"></span><span>Go Pro</span></a>-->
+
+                                    <!--                                    <div class="dropdown-divider"></div>-->
+                                    <!--                                    <a class="dropdown-item" href="#!">Set status</a>-->
+                                    <!--                                    <a class="dropdown-item" href="../../../pages/user/profile.html">Profile &amp;-->
+                                    <!--                                        account</a>-->
+                                    <!--                                    <a class="dropdown-item" href="#!">Feedback</a>-->
+
+                                    <!--                                    <div class="dropdown-divider"></div>-->
+                                    <!--                                    <a class="dropdown-item" href="../../../pages/user/settings.html">Settings</a>-->
+                                    <a class="dropdown-item" href="/logout">Logout</a>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row justify-content-between">
+                            <div class="col-md-auto">
+                                {{with .Form.Validator.FieldErrors.BasketItems}}
+                                <div class="alert alert-warning border-0 d-flex align-items-center" role="alert">
+                                    <div class="bg-warning me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
+                                    <p class="mb-0 flex-1">{{.}}</p>
+                                </div>
+                                {{end}}
+                                <h5 class="mb-3 mb-md-0">Shopping Cart ({{.Form.BasketItems}} Items)</h5>
+                            </div>
+                            <div class="col-md-auto">
+                                <a class="btn btn-sm btn-outline-secondary border-300 me-2 shadow-none"
+                                   href="/search">
+                                    <span class="fas fa-chevron-left me-1" data-fa-transform="shrink-4"></span>
+                                    Continue Shopping
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        {{range .Form.FinancialItems}}
+                        <!-- Store Header -->
+                        <div class="row gx-x1 mx-0 bg-primary text-white py-2 px-x1">
+                            <div class="col-12">
+                                <h6 class="mb-0 text-white">
+                                    <span class="fas fa-store me-2"></span>
+                                    Store: {{.Store.Name}}
+                                </h6>
+                            </div>
+                        </div>
+                        
+                        <!-- Products Header -->
+                        <div class="row gx-x1 mx-0 bg-200 text-900 fs-10 fw-semi-bold">
+                            <div class="col-9 col-md-8 py-2 px-x1">Product</div>
+                            <div class="col-3 col-md-4 px-x1">
+                                <div class="row">
+                                    <div class="col-md-8 py-2 d-none d-md-block text-center">Quantity</div>
+                                    <div class="col-12 col-md-4 text-end py-2">Price</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Store Products -->
+                        {{range .Products}}
+                        <div class="row gx-x1 mx-0 align-items-center border-bottom border-200">
+                            <div class="col-8 py-3 px-x1">
+                                <div class="d-flex align-items-center">
+                                    <a href="/products/{{.ID}}">
+                                        <img class="img-fluid rounded-1 me-3 d-none d-md-block"
+                                             src='{{.Img}}'
+                                             alt="{{.Name}}"
+                                             width="60"
+                                        />
+                                    </a>
+                                    <div class="flex-1">
+                                        <h5 class="fs-9">
+                                            <a class="text-900" href="/products/{{.ID}}">{{.Name}}</a>
+                                        </h5>
+                                        {{if .Description}}
+                                        <p class="fs-11 text-500 mb-0">{{.Description}}</p>
+                                        {{end}}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4 py-3 px-x1">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8 d-flex justify-content-end justify-content-md-center order-1 order-md-0">
+                                        <div>
+                                            <div class="input-group input-group-sm flex-nowrap"
+                                                 data-quantity="data-quantity">
+                                                <button class="btn btn-sm btn-outline-secondary border-300 px-2 shadow-none operation-button"
+                                                        data-type="minus" data-method="POST"
+                                                        data-url="/basket/remove-item/{{.ID}}">-
+                                                </button>
+                                                <input class="form-control text-center px-2 input-spin-none"
+                                                       type="number" min="1" value={{.Quantity}}
+                                                       aria-label="Quantity" style="width: 50px" readonly/>
+                                                <button class="btn btn-sm btn-outline-secondary border-300 px-2 shadow-none operation-button"
+                                                        data-type="plus" data-method="POST"
+                                                        data-url="/basket/add-item/{{.ID}}">+
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-end ps-0 order-0 order-md-1 mb-2 mb-md-0 text-600">
+                                        ${{printf "%.2f" .Subtotal}}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{end}}
+                        
+                        <!-- Store Financial Summary -->
+                        <div class="row gx-x1 mx-0 bg-light">
+                            <div class="col-12 py-2 px-x1">
+                                <div class="row">
+                                    <div class="col-9 col-md-8 text-end text-700">Subtotal:</div>
+                                    <div class="col-3 col-md-4 text-end text-700">${{printf "%.2f" .Subtotal}}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-9 col-md-8 text-end text-700">Taxes ({{.Taxes}}):</div>
+                                    <div class="col-3 col-md-4 text-end text-700">${{printf "%.2f" .TaxesAmount}}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-9 col-md-8 text-end text-700">Shipping:</div>
+                                    <div class="col-3 col-md-4 text-end text-700">${{printf "%.2f" .ShippingAmount}}</div>
+                                </div>
+                                <div class="row fw-bold border-top pt-2 mt-2">
+                                    <div class="col-9 col-md-8 text-end text-900">Store Total:</div>
+                                    <div class="col-3 col-md-4 text-end text-900">${{printf "%.2f" .Total}}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {{end}}
+                        
+                        <!-- Grand Total -->
+                        <div class="row fw-bold gx-x1 mx-0 bg-300">
+                            <div class="col-9 col-md-8 py-3 px-x1 text-end text-900 fs-8">Grand Total</div>
+                            <div class="col px-0">
+                                <div class="row gx-x1 mx-0">
+                                    <div class="col-md-8 py-3 px-x1 d-none d-md-block text-center">{{.Form.BasketItems}}
+                                        (items)
+                                    </div>
+                                    <div class="col-12 col-md-4 text-end py-3 px-x1 fs-7 text-primary">${{printf "%.2f" .Form.GrandTotal}}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-body-tertiary d-flex justify-content-end">
+                        <!--                        <form class="me-3">-->
+                        <!--                            <div class="input-group input-group-sm">-->
+                        <!--                                <input class="form-control" type="text" placeholder="Promocode" />-->
+                        <!--                                <button class="btn btn-outline-secondary border-300 btn-sm shadow-none" type="submit">Apply</button>-->
+                        <!--                            </div>-->
+                        <!--                        </form><a class="btn btn-sm btn-primary" href="../../app/e-commerce/checkout.html">Checkout</a>-->
+                        <button class="btn btn-primary mt-3"
+                                type="submit"
+                                name="submit">
+                            Checkout
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+<!-- ===============================================-->
+<!--    End of Main Content-->
+<!-- ===============================================-->
+{{end}}
+

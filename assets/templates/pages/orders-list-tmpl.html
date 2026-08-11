@@ -1,0 +1,185 @@
+{{define "page:title"}}My Orders{{end}}
+{{define "page:main"}}
+<!-- ===============================================-->
+<!--    Main Content-->
+<!-- ===============================================-->
+<main class="main" id="top">
+    <div class="container" data-layout="container">
+        <script>
+            const isFluid = JSON.parse(localStorage.getItem('isFluid'));
+            if (isFluid) {
+                const container = document.querySelector('[data-layout]');
+                container.classList.remove('container');
+                container.classList.add('container-fluid');
+            }
+        </script>
+        <div class="content">
+            <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand">
+                {{if not .Form.IsMobile}}
+                <a class="navbar-brand me-1 me-sm-3" href="/search">
+                    <div class="d-flex align-items-center">
+                        <img class="me-2"
+                             src="/static/img/beecore/beecore-logomark.png"
+                             alt=""
+                             width="40"/>
+                        <span class="logo-text">BeeCore</span>
+                    </div>
+                </a>
+                {{else}}
+                <a class="navbar-brand me-1 me-sm-3" href="/search">
+                    <div class="d-flex align-items-center">
+                        <img class="me-2"
+                             src="/static/img/beecore/beecore-logomark.png"
+                             alt=""
+                             width="30"/>
+                        <span class="logo-text">BeeCore</span>
+                    </div>
+                </a>
+                {{end}}
+                <ul class="navbar-nav navbar-nav-icons ms-auto flex-row align-items-center">
+                    <li class="nav-item ps-2 pe-0">
+                        <div class="dropdown theme-control-dropdown"><a
+                                class="nav-link d-flex align-items-center dropdown-toggle fa-icon-wait fs-9 pe-1 py-0"
+                                href="#" role="button" id="themeSwitchDropdown" data-bs-toggle="dropdown"
+                                aria-haspopup="true" aria-expanded="false"><span class="fas fa-sun fs-7"
+                                                                                 data-fa-transform="shrink-2"
+                                                                                 data-theme-dropdown-toggle-icon="light"></span><span
+                                class="fas fa-moon fs-7" data-fa-transform="shrink-3"
+                                data-theme-dropdown-toggle-icon="dark"></span><span class="fas fa-adjust fs-7"
+                                                                                    data-fa-transform="shrink-2"
+                                                                                    data-theme-dropdown-toggle-icon="auto"></span></a>
+                            <div class="dropdown-menu dropdown-menu-end dropdown-caret border py-0 mt-3"
+                                 aria-labelledby="themeSwitchDropdown">
+                                <div class="bg-white dark__bg-1000 rounded-2 py-2">
+                                    <button class="dropdown-item d-flex align-items-center gap-2" type="button"
+                                            value="light" data-theme-control="theme"><span
+                                            class="fas fa-sun"></span>Light<span
+                                            class="fas fa-check dropdown-check-icon ms-auto text-600"></span>
+                                    </button>
+                                    <button class="dropdown-item d-flex align-items-center gap-2" type="button"
+                                            value="dark" data-theme-control="theme"><span class="fas fa-moon"
+                                                                                          data-fa-transform=""></span>Dark<span
+                                            class="fas fa-check dropdown-check-icon ms-auto text-600"></span>
+                                    </button>
+                                    <button class="dropdown-item d-flex align-items-center gap-2" type="button"
+                                            value="auto" data-theme-control="theme"><span class="fas fa-adjust"
+                                                                                          data-fa-transform=""></span>Auto<span
+                                            class="fas fa-check dropdown-check-icon ms-auto text-600"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown"><a class="nav-link pe-0 ps-2" id="navbarDropdownUser"
+                                                     role="button" data-bs-toggle="dropdown"
+                                                     aria-haspopup="true"
+                                                     aria-expanded="false">
+                        <div class="avatar avatar-xl">
+                            <img class="rounded-circle" src="/static/img/team/3-thumb.png" alt=""/>
+                        </div>
+                    </a>
+                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end py-0"
+                             aria-labelledby="navbarDropdownUser">
+                            <div class="bg-white dark__bg-1000 rounded-2 py-2">
+                                <a class="dropdown-item" href="/logout">Logout</a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Orders Table -->
+            <div class="card mb-3" id="ordersTable" data-list='{"valueNames":["order","date","address","status","amount"],"page":10,"pagination":true}'>
+                <div class="card-header">
+                    <div class="row flex-between-center">
+                        <div class="col-4 col-sm-auto d-flex align-items-center pe-0">
+                            <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">My Orders</h5>
+                        </div>
+                        <div class="col-8 col-sm-auto ms-auto text-end ps-0">
+                            <div id="orders-actions">
+                                <a class="btn btn-falcon-default btn-sm" href="/search"><span class="fas fa-shopping-cart" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Continue Shopping</span></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {{if .Form.Orders}}
+                    <div class="table-responsive scrollbar">
+                        <table class="table table-sm table-striped fs-10 mb-0 overflow-hidden">
+                            <thead class="bg-200">
+                                <tr>
+                                    <th class="text-900 sort pe-1 align-middle white-space-nowrap" data-sort="order">Order</th>
+                                    <th class="text-900 sort pe-1 align-middle white-space-nowrap pe-7" data-sort="date">Date</th>
+                                    <th class="text-900 sort pe-1 align-middle white-space-nowrap" data-sort="items">Items</th>
+                                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center" data-sort="status">Status</th>
+                                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end" data-sort="amount">Amount</th>
+                                    <th class="no-sort"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="list" id="table-orders-body">
+                                {{range .Form.Orders}}
+                                <tr class="btn-reveal-trigger">
+                                    <td class="order py-2 align-middle white-space-nowrap">
+                                        <strong>#{{.OrderID}}</strong>
+                                        <br/><small class="text-500">Payment: {{.PaymentID}}</small>
+                                    </td>
+                                    <td class="date py-2 align-middle">{{.UpdatedAt}}</td>
+                                    <td class="items py-2 align-middle white-space-nowrap">{{.ItemCount}} item(s)</td>
+                                    <td class="status py-2 align-middle text-center fs-9 white-space-nowrap">
+                                        {{if eq .Status "CONFIRMED"}}
+                                        <span class="badge badge rounded-pill d-block badge-subtle-success">Completed<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>
+                                        {{else if eq .Status "PENDING"}}
+                                        <span class="badge badge rounded-pill d-block badge-subtle-warning">Pending<span class="ms-1 fas fa-stream" data-fa-transform="shrink-2"></span></span>
+                                        {{else if eq .Status "CANCELED"}}
+                                        <span class="badge badge rounded-pill d-block badge-subtle-secondary">Canceled<span class="ms-1 fas fa-ban" data-fa-transform="shrink-2"></span></span>
+                                        {{else if eq .Status "FAILED"}}
+                                        <span class="badge badge rounded-pill d-block badge-subtle-danger">Failed<span class="ms-1 fas fa-times" data-fa-transform="shrink-2"></span></span>
+                                        {{else}}
+                                        <span class="badge badge rounded-pill d-block badge-subtle-primary">Processing<span class="ms-1 fas fa-redo" data-fa-transform="shrink-2"></span></span>
+                                        {{end}}
+                                    </td>
+                                    <td class="amount py-2 align-middle text-end fs-9 fw-medium">${{printf "%.2f" .Amount}}</td>
+                                    <td class="py-2 align-middle white-space-nowrap text-end">
+                                        <div class="dropdown font-sans-serif position-static">
+                                            <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal" type="button" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-ellipsis-h fs-10"></span></button>
+                                            <div class="dropdown-menu dropdown-menu-end border py-0">
+                                                <div class="py-2">
+                                                    <a class="dropdown-item" href="#!">View Details</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                    {{else}}
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <span class="fas fa-shopping-bag fa-3x text-300"></span>
+                        </div>
+                        <h5 class="text-800">No orders yet</h5>
+                        <p class="text-500">Start shopping to see your orders here</p>
+                        <a class="btn btn-primary btn-sm mt-3" href="/search">Browse Products</a>
+                    </div>
+                    {{end}}
+                </div>
+                {{if .Form.Orders}}
+                <div class="card-footer">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <button class="btn btn-sm btn-falcon-default me-1" type="button" title="Previous" data-list-pagination="prev"><span class="fas fa-chevron-left"></span></button>
+                        <ul class="pagination mb-0"></ul>
+                        <button class="btn btn-sm btn-falcon-default ms-1" type="button" title="Next" data-list-pagination="next"><span class="fas fa-chevron-right"></span></button>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ===============================================-->
+<!--    End of Main Content-->
+<!-- ===============================================-->
+{{end}}

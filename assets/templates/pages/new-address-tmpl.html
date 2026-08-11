@@ -1,0 +1,201 @@
+{{define "page:title"}}Address{{end}}
+{{define "page:main"}}
+<main class="main" id="top">
+    <div class="container" data-layout="container">
+        <script>
+            const isFluid = JSON.parse(localStorage.getItem('isFluid'));
+            if (isFluid) {
+                const container = document.querySelector('[data-layout]');
+                container.classList.remove('container');
+                container.classList.add('container-fluid');
+            }
+        </script>
+        <div class="row flex-center min-vh-100 py-6">
+            <!--          <div class="col-sm-10 col-md-8 col-lg-6 col-xl-5 col-xxl-4"><a class="d-flex flex-center mb-4" href="#"><img class="me-2" src="/static/img/icons/spot-illustrations/falcon.png" alt="" width="58" /><span class="font-sans-serif text-primary fw-bolder fs-4 d-inline-block">falcon</span></a>-->
+            <div class="col-sm-10 col-md-8 col-lg-6 col-xl-5 col-xxl-4"><a class="d-flex flex-center mb-4" href="#"><img
+                    class="me-2" src="/static/img/beecore/beecore-logomark.png" alt="" width="58"/><span
+                    class="logo-text text-primary fw-bolder fs-4 d-inline-block">BeeCore</span></a>
+                <div class="card">
+                    <div class="card-body p-4 p-sm-5">
+                        <div class="row">
+                            {{with .Form.Validator.FieldErrors.MaxAddresses}}
+                            <div class="alert alert-warning border-0 d-flex align-items-center" role="alert">
+                                <div class="bg-warning me-3 icon-item"><span
+                                        class="fas fa-exclamation-circle text-white fs-6"></span></div>
+                                <p class="mb-0 flex-1">{{.}}</p>
+                                <a class="btn btn-sm btn-outline-secondary border-300 me-2 shadow-none"
+                                   href="/checkout">
+                                    <span class="fas fa-chevron-left me-1" data-fa-transform="shrink-4"></span>
+                                    Go to checkout
+                                </a>
+                            </div>
+                            {{end}}
+                        </div>
+                        <div class="row flex-between-center mb-2">
+                            <div class="col-auto">
+                                <h5>New Address</h5>
+                            </div>
+                        </div>
+                        <form class="row g-3" method="POST" action="/addresses/new">
+                            <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+                            <div class="col-lg-12">
+                                <label class="form-label" for="country">Country*</label>
+                                {{with .Form.Validator.FieldErrors.Country}}
+                                <div><small class="text-danger">{{.}}</small></div>
+                                {{end}}
+                                {{if .Form.Country}}
+                                <select class="form-select" id="country" name="Country">
+                                    <option>{{.Form.Country}}</option>
+                                    <option value="Ecuador">Ecuador</option>
+                                </select>
+                                {{else}}
+                                <select class="form-select" id="country" name="Country">
+                                    <option>Select Country</option>
+                                    <option value="Ecuador">Ecuador</option>
+                                </select>
+                                {{end}}
+                            </div>
+                            <div class="col-lg-6">
+                                {{if .Form.Validator.FieldErrors.State}}
+                                <div class="form-floating">
+                                    <input class="form-control is-invalid" id="state" type="text"
+                                           autocomplete="on" name="State" value="{{.Form.State}}"/>
+                                    {{with .Form.Validator.FieldErrors.State}}
+                                    <label for="state">{{.}}</label>
+                                    {{end}}
+                                </div>
+                                {{else}}
+                                <label class="form-label" for="state">State*</label>
+                                <input id="state" class="form-control" type="text" autocomplete="on"
+                                       name="State" value="{{.Form.State}}"/>
+                                {{end}}
+                            </div>
+                            <div class="col-lg-6">
+                                {{if .Form.Validator.FieldErrors.City}}
+                                <div class="form-floating">
+                                    <input class="form-control is-invalid" id="city" type="text"
+                                           autocomplete="on" name="City" value="{{.Form.City}}"/>
+                                    {{with .Form.Validator.FieldErrors.City}}
+                                    <label for="city">{{.}}</label>
+                                    {{end}}
+                                </div>
+                                {{else}}
+                                <label class="form-label" for="city">City*</label>
+                                <input id="city" class="form-control" type="text" autocomplete="on"
+                                       name="City" value="{{.Form.City}}"/>
+                                {{end}}
+                            </div>
+                            <div class="col-lg-6">
+                                {{if .Form.Validator.FieldErrors.ZIP}}
+                                <div class="form-floating">
+                                    <input class="form-control is-invalid" id="zip" type="text"
+                                           autocomplete="on" name="ZIP" value="{{.Form.ZIP}}"/>
+                                    {{with .Form.Validator.FieldErrors.ZIP}}
+                                    <label for="zip">{{.}}</label>
+                                    {{end}}
+                                </div>
+                                {{else}}
+                                <label class="form-label" for="zip">ZIP*</label>
+                                <input id="zip" class="form-control" type="text" autocomplete="on"
+                                       name="ZIP" value="{{.Form.ZIP}}"/>
+                                {{end}}
+                            </div>
+                            <div class="col-lg-12">
+                                {{if .Form.Validator.FieldErrors.MainAddress}}
+                                <div class="form-floating">
+                                    <input class="form-control is-invalid" id="main-address" type="text"
+                                           autocomplete="on" name="MainAddress"
+                                           value="{{.Form.MainAddress}}"/>
+                                    {{with .Form.Validator.FieldErrors.MainAddress}}
+                                    <label for="main-address">{{.}}</label>
+                                    {{end}}
+                                </div>
+                                {{else}}
+                                <label class="form-label" for="main-address">Main Address*</label>
+                                <input id="main-address" class="form-control" type="text"
+                                       autocomplete="on"
+                                       name="MainAddress" value="{{.Form.MainAddress}}"/>
+                                {{end}}
+                            </div>
+                            <div class="col-lg-12">
+                                {{if .Form.Validator.FieldErrors.SecondaryAddress}}
+                                <div class="form-floating">
+                                    <input class="form-control is-invalid" id="secondary-address"
+                                           type="text"
+                                           autocomplete="on" name="SecondaryAddress"
+                                           value="{{.Form.SecondaryAddress}}"/>
+                                    {{with .Form.Validator.FieldErrors.SecondaryAddress}}
+                                    <label for="secondary-address">{{.}}</label>
+                                    {{end}}
+                                </div>
+                                {{else}}
+                                <label class="form-label" for="secondary-address">Secondary
+                                    Address*</label>
+                                <input id="secondary-address" class="form-control" type="text"
+                                       autocomplete="on"
+                                       name="SecondaryAddress" value="{{.Form.SecondaryAddress}}"/>
+                                {{end}}
+                            </div>
+                            <div class="col-lg-6">
+                                {{if .Form.Validator.FieldErrors.Numeration}}
+                                <div class="form-floating">
+                                    <input class="form-control is-invalid" id="numeration" type="text"
+                                           autocomplete="on" name="Numeration"
+                                           value="{{.Form.Numeration}}"/>
+                                    {{with .Form.Validator.FieldErrors.Numeration}}
+                                    <label for="numeration">{{.}}</label>
+                                    {{end}}
+                                </div>
+                                {{else}}
+                                <label class="form-label" for="numeration">Numeration*</label>
+                                <input id="numeration" class="form-control" type="text"
+                                       autocomplete="on"
+                                       name="Numeration" value="{{.Form.Numeration}}"/>
+                                {{end}}
+                            </div>
+                            <div class="col-lg-12">
+                                {{if .Form.Validator.FieldErrors.Phone}}
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text" id="phone-code">+593</span>
+                                    <div class="form-floating">
+                                        <input id="phone-number"
+                                               class="form-control is-invalid"
+                                               type="tel"
+                                               autocomplete="on"
+                                               name="Phone"
+                                               value="{{.Form.Phone}}"
+                                               data-input-mask='{"mask":"999999999"}'/>
+                                        {{with .Form.Validator.FieldErrors.Phone}}
+                                        <label for="phone-number">{{.}}</label>
+                                        {{end}}
+                                    </div>
+                                </div>
+                                {{else}}
+                                <label class="form-label" for="phone-number">Recipient Phone
+                                    Number*</label>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text" id="phone-code">+593</span>
+                                    <input id="phone-number"
+                                           class="form-control"
+                                           type="tel"
+                                           autocomplete="on"
+                                           name="Phone" value="{{.Form.Phone}}"
+                                           data-input-mask='{"mask":"999999999"}'/>
+                                </div>
+                                {{end}}
+                            </div>
+                            <div class="mb-3">
+                                <button class="btn btn-primary d-block w-100 mt-3" type="submit" name="submit">Submit
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<!-- ===============================================-->
+<!--    End of Main Content-->
+<!-- ===============================================-->
+{{end}}

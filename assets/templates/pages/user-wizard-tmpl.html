@@ -1,0 +1,125 @@
+{{define "page:title"}}Wizard{{end}}
+{{define "page:main"}}
+<main class="main" id="top">
+    <div class="container" data-layout="container">
+        <script>
+            const isFluid = JSON.parse(localStorage.getItem('isFluid'));
+            if (isFluid) {
+                const container = document.querySelector('[data-layout]');
+                container.classList.remove('container');
+                container.classList.add('container-fluid');
+            }
+        </script>
+        <div class="row justify-content-center pt-6">
+            <div class="col-sm-10 col-lg-7 col-xxl-5"><a class="d-flex flex-center mb-4" href="/"><img class="me-2" src="/static/img/icons/spot-illustrations/falcon.png" alt="" width="45" /><span class="font-sans-serif text-primary fw-bolder fs-5 d-inline-block">falcon</span></a>
+                <div class="card theme-wizard mb-5" id="wizard">
+                    <div class="card-header bg-body-tertiary pt-3 pb-2">
+                        <ul class="nav justify-content-between nav-wizard">
+                            <li class="nav-item"><a class="nav-link active  fw-semi-bold" href="#bootstrap-wizard-tab1"
+                                                    data-bs-toggle="tab" data-wizard-step="1"><span
+                                    class="nav-item-circle-parent"><span class="nav-item-circle"><span
+                                    class="fas fa-user"></span></span></span><span class="d-none d-md-block mt-1 fs-10">Personal</span></a>
+                            </li>
+                            <li class="nav-item"><a class="nav-link  fw-semi-bold" href="#bootstrap-wizard-tab2"
+                                                    data-bs-toggle="tab" data-wizard-step="2"><span
+                                    class="nav-item-circle-parent"><span class="nav-item-circle"><span
+                                    class="fas fa-address-book"></span></span></span><span
+                                    class="d-none d-md-block mt-1 fs-10">Shipping</span></a></li>
+                            <li class="nav-item"><a class="nav-link fw-semi-bold" href="#bootstrap-wizard-tab3"
+                                                    data-bs-toggle="tab" data-wizard-step="3"><span
+                                    class="nav-item-circle-parent"><span class="nav-item-circle"><span
+                                    class="fas fa-thumbs-up"></span></span></span><span
+                                    class="d-none d-md-block mt-1 fs-10">Done</span></a></li>
+                        </ul>
+                    </div>
+                    <div class="card-body py-4" id="wizard-controller">
+                        <div class="tab-content">
+                            <div class="tab-pane active px-sm-3 px-md-5" role="tabpanel" aria-labelledby="bootstrap-wizard-tab1" id="bootstrap-wizard-tab1">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Profile Information</h5>
+                                    </div>
+                                    <div class="card-body bg-body-tertiary">
+                                        <form class="row g-3" novalidate="novalidate" id="account-update" method="POST" action="/user/update">
+                                            <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+                                            <div class="col-lg-12">
+                                                {{if .Form.Validator.FieldErrors.IN}}
+                                                <div class="form-floating">
+                                                    <input class="form-control is-invalid" id="in" type="text"
+                                                           autocomplete="on" name="IN" value="{{.Form.IN}}"/>
+                                                    {{with .Form.Validator.FieldErrors.IN}}
+                                                    <label for="in">{{.}}</label>
+                                                    {{end}}
+                                                </div>
+                                                {{else}}
+                                                <label class="form-label" for="in">Identification Number*</label>
+                                                <input id="in" class="form-control" type="text" autocomplete="on"
+                                                       name="IN" value="{{.Form.IN}}"/>
+                                                {{end}}
+                                            </div>
+                                            <div class="col-lg-12">
+                                                {{if .Form.Validator.FieldErrors.PhoneNumber}}
+                                                <div class="input-group mb-3">
+                                                    <span class="input-group-text" id="phone-code">+593</span>
+                                                    <div class="form-floating">
+                                                        <input class="form-control is-invalid" id="phone-number"
+                                                               type="tel"
+                                                               autocomplete="on" name="PhoneNumber"
+                                                               value="{{.Form.PhoneNumber}}"
+                                                               data-input-mask='{"mask":"999999999"}'/>
+                                                        {{with .Form.Validator.FieldErrors.PhoneNumber}}
+                                                        <label for="phone-number">{{.}}</label>
+                                                        {{end}}
+                                                    </div>
+                                                </div>
+                                                {{else}}
+                                                <label class="form-label" for="phone-number">Phone Number*</label>
+                                                <div class="input-group mb-3">
+                                                    <span class="input-group-text" id="phone-code">+593</span>
+                                                    <input id="phone-number" class="form-control" type="tel"
+                                                           autocomplete="on"
+                                                           name="PhoneNumber" value="{{.Form.PhoneNumber}}"
+                                                           data-input-mask='{"mask":"999999999"}'/>
+                                                </div>
+                                                {{end}}
+                                            </div>
+                                            <div class="col-lg-12">
+                                                {{if .Form.Validator.FieldErrors.Birthday}}
+                                                <div class="form-floating">
+                                                    <input class="form-control datetimepicker is-invalid" id="birthday"
+                                                           type="text"
+                                                           autocomplete="on" name="Birthday" value="{{.Form.Birthday}}"
+                                                           data-options='{"disableMobile":true}'/>
+                                                    {{with .Form.Validator.FieldErrors.Birthday}}
+                                                    <label for="birthday">{{.}}</label>
+                                                    {{end}}
+                                                </div>
+                                                {{else}}
+                                                <label class="form-label" for="birthday">Birthday*</label>
+                                                <input id="birthday" class="form-control datetimepicker" type="text"
+                                                       autocomplete="on"
+                                                       name="Birthday" value="{{.Form.Birthday}}"
+                                                       data-options='{"disableMobile":true}'/>
+                                                {{end}}
+                                            </div>
+                                            <div class="col-12 d-flex justify-content-end">
+                                                <button class="btn btn-primary" name="submit" type="submit">Update</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="tab-pane px-sm-3 px-md-5" role="tabpanel" aria-labelledby="bootstrap-wizard-tab2" id="bootstrap-wizard-tab2">
+                            </div>
+                            <div class="tab-pane px-sm-3 px-md-5" role="tabpanel" aria-labelledby="bootstrap-wizard-tab3" id="bootstrap-wizard-tab3">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{{end}}
+

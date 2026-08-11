@@ -1,0 +1,121 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html data-bs-theme="light" lang="en-US" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+    <!-- ===============================================-->
+    <!--    Document Title-->
+    <!-- ===============================================-->
+    <title>{{template "page:title" .}}</title>
+
+
+    <!-- ===============================================-->
+    <!--    Favicons-->
+    <!-- ===============================================-->
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicons/favicon-16x16.png">
+    <link rel="shortcut icon" type="image/x-icon" href="/static/img/favicons/favicon.ico">
+    <link rel="manifest" href="/static/img/favicons/manifest.json">
+    <meta name="msapplication-TileImage" content="/static/img/favicons/mstile-150x150.png">
+    <meta name="theme-color" content="#ffffff">
+    <script src="/static/js/config.js"></script>
+    <script src="/static/vendors/simplebar/simplebar.min.js"></script>
+
+
+    <!-- ===============================================-->
+    <!--    Stylesheets-->
+    <!-- ===============================================-->
+    <link href="/static/vendors/swiper/swiper-bundle.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700%7cPoppins:300,400,500,600,700,800,900%7cRoboto:400,500,700&amp;display=swap"
+          rel="stylesheet">
+    <link href="/static/vendors/flatpickr/flatpickr.min.css" rel="stylesheet">
+    <link href="/static/vendors/prism/prism-okaidia.css" rel="stylesheet">
+    <link href="/static/vendors/dropzone/dropzone.css" rel="stylesheet">
+    <link href="/static/vendors/simplebar/simplebar.min.css" rel="stylesheet">
+    <link href="/static/vendors/glightbox/glightbox.min.css" rel="stylesheet" />
+    <link href="/static/css/theme-rtl.css" rel="stylesheet" id="style-rtl">
+    <link href="/static/css/theme.css" rel="stylesheet" id="style-default">
+    <link href="/static/css/user-rtl.css" rel="stylesheet" id="user-style-rtl">
+    <link href="/static/css/user.css" rel="stylesheet" id="user-style-default">
+    <link href="/static/css/custom/search-styles.css" rel="stylesheet" id="search-style-default">
+    <link href="/static/css/custom/images-styles.css" rel="stylesheet" id="images-style-default">
+    <link href="/static/css/custom/text-styles.css" rel="stylesheet" id="text-style-default">
+    <link href="/static/css/custom/logo-text.css" rel="stylesheet" id="logo-text-style-default">
+
+    <!-- PayPhone CSS and JS Dependencies -->
+    <!-- Note: v1.1 SDK has deprecation warnings for unload event listeners -->
+    <!-- TODO: Update to newer version when PayPhone releases updated SDK -->
+    <link rel="stylesheet" href="https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.css">
+    <script src="https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.js"></script>
+
+    <script>
+        const isRTL = JSON.parse(localStorage.getItem('isRTL'));
+        if (isRTL) {
+            const linkDefault = document.getElementById('style-default');
+            const userLinkDefault = document.getElementById('user-style-default');
+            linkDefault.setAttribute('disabled', true);
+            userLinkDefault.setAttribute('disabled', true);
+            document.querySelector('html').setAttribute('dir', 'rtl');
+        } else {
+            const linkRTL = document.getElementById('style-rtl');
+            const userLinkRTL = document.getElementById('user-style-rtl');
+            linkRTL.setAttribute('disabled', true);
+            userLinkRTL.setAttribute('disabled', true);
+        }
+    </script>
+
+</head>
+
+<body>
+
+<!-- ===============================================-->
+<!--    Main Content-->
+<!-- ===============================================-->
+
+{{template "page:main" .}}
+
+
+<!-- ===============================================-->
+<!--    End of Main Content-->
+<!-- ===============================================-->
+
+<!-- ===============================================-->
+<!--    JavaScripts-->
+<!-- ===============================================-->
+<script src="/static/vendors/flatpickr/flatpickr.min.js"></script>
+<script src="/static/vendors/flatpickr/bn.js"></script>
+<script src="/static/vendors/validator/validator.min.js"></script>
+<script src="/static/vendors/dropzone/dropzone-min.js"></script>
+<script src="/static/vendors/lottie/lottie.min.js"></script>
+<script src="/static/vendors/popper/popper.min.js"></script>
+<script src="/static/vendors/bootstrap/bootstrap.min.js"></script>
+<script src="/static/vendors/anchorjs/anchor.min.js"></script>
+<script src="/static/vendors/is/is.min.js"></script>
+<script src="/static/vendors/echarts/echarts.min.js"></script>
+<script src="/static/vendors/fontawesome/all.min.js"></script>
+<script src="/static/vendors/lodash/lodash.min.js"></script>
+<script src="/static/vendors/smoothscroll/smoothscroll.min.js"></script>
+<script>
+    window.__forceSmoothScrollPolyfill__ = true;
+    // The polyfill attaches itself to window.smoothscrollPolyfill, but you don't need to call it directly.
+    if (window.smoothscrollPolyfill && window.smoothscrollPolyfill.polyfill) {
+        window.smoothscrollPolyfill.polyfill();
+    }
+</script>
+<script src="/static/vendors/list.js/list.min.js"></script>
+<script src="/static/js/theme.js"></script>
+<script src="/static/vendors/prism/prism.js"></script>
+<script src="/static/js/custom/buttons-operations.js"></script>
+<script src="/static/vendors/swiper/swiper-bundle.min.js"> </script>
+<script src="/static/vendors/typed.js/typed.umd.js"></script>
+<script src="/static/vendors/glightbox/glightbox.min.js"></script>
+</body>
+</html>
+{{end}}

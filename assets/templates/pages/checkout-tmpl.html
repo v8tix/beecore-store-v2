@@ -1,0 +1,671 @@
+{{define "page:title"}}Checkout{{end}}
+{{define "page:main"}}
+<!-- ===============================================-->
+<!--    Main Content-->
+<!-- ===============================================-->
+<main class="main" id="top">
+    <div class="container" data-layout="container">
+        <script>
+            const isFluid = JSON.parse(localStorage.getItem('isFluid'));
+            if (isFluid) {
+                const container = document.querySelector('[data-layout]');
+                container.classList.remove('container');
+                container.classList.add('container-fluid');
+            }
+        </script>
+        <div class="content">
+            <form method="POST" action="/checkout">
+                <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+                <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand">
+                    {{if not .Form.IsMobile}}
+                    <a class="navbar-brand me-1 me-sm-3">
+                        <div class="d-flex align-items-center">
+                            <img class="me-2"
+                                 src="/static/img/beecore/beecore-logomark.png"
+                                 alt=""
+                                 width="40"/>
+                            <span class="logo-text">BeeCore</span>
+                        </div>
+                    </a>
+                    {{else}}
+                    <a class="navbar-brand me-1 me-sm-3">
+                        <div class="d-flex align-items-center">
+                            <img class="me-2"
+                                 src="/static/img/beecore/beecore-logomark.png"
+                                 alt=""
+                                 width="30"/>
+                            <span class="logo-text">BeeCore</span>
+                        </div>
+                    </a>
+                    {{end}}
+                    <ul class="navbar-nav navbar-nav-icons ms-auto flex-row align-items-center">
+                        <li class="nav-item ps-2 pe-0">
+                            <div class="dropdown theme-control-dropdown"><a
+                                    class="nav-link d-flex align-items-center dropdown-toggle fa-icon-wait fs-9 pe-1 py-0"
+                                    href="#" role="button" id="themeSwitchDropdown" data-bs-toggle="dropdown"
+                                    aria-haspopup="true" aria-expanded="false"><span class="fas fa-sun fs-7"
+                                                                                     data-fa-transform="shrink-2"
+                                                                                     data-theme-dropdown-toggle-icon="light"></span><span
+                                    class="fas fa-moon fs-7" data-fa-transform="shrink-3"
+                                    data-theme-dropdown-toggle-icon="dark"></span><span class="fas fa-adjust fs-7"
+                                                                                        data-fa-transform="shrink-2"
+                                                                                        data-theme-dropdown-toggle-icon="auto"></span></a>
+                                <div class="dropdown-menu dropdown-menu-end dropdown-caret border py-0 mt-3"
+                                     aria-labelledby="themeSwitchDropdown">
+                                    <div class="bg-white dark__bg-1000 rounded-2 py-2">
+                                        <button class="dropdown-item d-flex align-items-center gap-2" type="button"
+                                                value="light" data-theme-control="theme"><span
+                                                class="fas fa-sun"></span>Light<span
+                                                class="fas fa-check dropdown-check-icon ms-auto text-600"></span>
+                                        </button>
+                                        <button class="dropdown-item d-flex align-items-center gap-2" type="button"
+                                                value="dark" data-theme-control="theme"><span class="fas fa-moon"
+                                                                                              data-fa-transform=""></span>Dark<span
+                                                class="fas fa-check dropdown-check-icon ms-auto text-600"></span>
+                                        </button>
+                                        <button class="dropdown-item d-flex align-items-center gap-2" type="button"
+                                                value="auto" data-theme-control="theme"><span class="fas fa-adjust"
+                                                                                              data-fa-transform=""></span>Auto<span
+                                                class="fas fa-check dropdown-check-icon ms-auto text-600"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <!--                        <li class="nav-item d-none d-sm-block">-->
+                        <!--                            <a class="nav-link px-0 notification-indicator notification-indicator-warning notification-indicator-fill fa-icon-wait"-->
+                        <!--                               href="../../app/e-commerce/shopping-cart.html"><span class="fas fa-shopping-cart"-->
+                        <!--                                                                                    data-fa-transform="shrink-7"-->
+                        <!--                                                                                    style="font-size: 33px;"></span><span-->
+                        <!--                                    class="notification-indicator-number">1</span></a>-->
+
+                        <!--                        </li>-->
+                        <!--                        <li class="nav-item dropdown">-->
+                        <!--                            <a class="nav-link notification-indicator notification-indicator-primary px-0 fa-icon-wait"-->
+                        <!--                               id="navbarDropdownNotification" role="button" data-bs-toggle="dropdown"-->
+                        <!--                               aria-haspopup="true" aria-expanded="false"-->
+                        <!--                               data-hide-on-body-scroll="data-hide-on-body-scroll"><span class="fas fa-bell"-->
+                        <!--                                                                                         data-fa-transform="shrink-6"-->
+                        <!--                                                                                         style="font-size: 33px;"></span></a>-->
+                        <!--                            <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg"-->
+                        <!--                                 aria-labelledby="navbarDropdownNotification">-->
+                        <!--                                <div class="card card-notification shadow-none">-->
+                        <!--                                    <div class="card-header">-->
+                        <!--                                        <div class="row justify-content-between align-items-center">-->
+                        <!--                                            <div class="col-auto">-->
+                        <!--                                                <h6 class="card-header-title mb-0">Notifications</h6>-->
+                        <!--                                            </div>-->
+                        <!--                                            <div class="col-auto ps-0 ps-sm-3"><a class="card-link fw-normal" href="#">Mark-->
+                        <!--                                                all as read</a></div>-->
+                        <!--                                        </div>-->
+                        <!--                                    </div>-->
+                        <!--                                    <div class="scrollbar-overlay" style="max-height:19rem">-->
+                        <!--                                        <div class="list-group list-group-flush fw-normal fs-10">-->
+                        <!--                                            <div class="list-group-title border-bottom">NEW</div>-->
+                        <!--                                            <div class="list-group-item">-->
+                        <!--                                                <a class="notification notification-flush notification-unread"-->
+                        <!--                                                   href="#!">-->
+                        <!--                                                    <div class="notification-avatar">-->
+                        <!--                                                        <div class="avatar avatar-2xl me-3">-->
+                        <!--                                                            <img class="rounded-circle"-->
+                        <!--                                                                 src="../../assets/img/team/1-thumb.png" alt=""/>-->
+
+                        <!--                                                        </div>-->
+                        <!--                                                    </div>-->
+                        <!--                                                    <div class="notification-body">-->
+                        <!--                                                        <p class="mb-1"><strong>Emma Watson</strong> replied to your-->
+                        <!--                                                            comment : "Hello world 😍"</p>-->
+                        <!--                                                        <span class="notification-time"><span class="me-2" role="img"-->
+                        <!--                                                                                              aria-label="Emoji">💬</span>Just now</span>-->
+
+                        <!--                                                    </div>-->
+                        <!--                                                </a>-->
+
+                        <!--                                            </div>-->
+                        <!--                                            <div class="list-group-item">-->
+                        <!--                                                <a class="notification notification-flush notification-unread"-->
+                        <!--                                                   href="#!">-->
+                        <!--                                                    <div class="notification-avatar">-->
+                        <!--                                                        <div class="avatar avatar-2xl me-3">-->
+                        <!--                                                            <div class="avatar-name rounded-circle"><span>AB</span>-->
+                        <!--                                                            </div>-->
+                        <!--                                                        </div>-->
+                        <!--                                                    </div>-->
+                        <!--                                                    <div class="notification-body">-->
+                        <!--                                                        <p class="mb-1"><strong>Albert Brooks</strong> reacted to-->
+                        <!--                                                            <strong>Mia Khalifa's</strong> status</p>-->
+                        <!--                                                        <span class="notification-time"><span-->
+                        <!--                                                                class="me-2 fab fa-gratipay text-danger"></span>9hr</span>-->
+
+                        <!--                                                    </div>-->
+                        <!--                                                </a>-->
+
+                        <!--                                            </div>-->
+                        <!--                                            <div class="list-group-title border-bottom">EARLIER</div>-->
+                        <!--                                            <div class="list-group-item">-->
+                        <!--                                                <a class="notification notification-flush" href="#!">-->
+                        <!--                                                    <div class="notification-avatar">-->
+                        <!--                                                        <div class="avatar avatar-2xl me-3">-->
+                        <!--                                                            <img class="rounded-circle"-->
+                        <!--                                                                 src="../../assets/img/icons/weather-sm.jpg" alt=""/>-->
+
+                        <!--                                                        </div>-->
+                        <!--                                                    </div>-->
+                        <!--                                                    <div class="notification-body">-->
+                        <!--                                                        <p class="mb-1">The forecast today shows a low of 20&#8451; in-->
+                        <!--                                                            California. See today's weather.</p>-->
+                        <!--                                                        <span class="notification-time"><span class="me-2" role="img"-->
+                        <!--                                                                                              aria-label="Emoji">🌤️</span>1d</span>-->
+
+                        <!--                                                    </div>-->
+                        <!--                                                </a>-->
+
+                        <!--                                            </div>-->
+                        <!--                                            <div class="list-group-item">-->
+                        <!--                                                <a class="border-bottom-0 notification-unread  notification notification-flush"-->
+                        <!--                                                   href="#!">-->
+                        <!--                                                    <div class="notification-avatar">-->
+                        <!--                                                        <div class="avatar avatar-xl me-3">-->
+                        <!--                                                            <img class="rounded-circle"-->
+                        <!--                                                                 src="../../assets/img/logos/oxford.png" alt=""/>-->
+
+                        <!--                                                        </div>-->
+                        <!--                                                    </div>-->
+                        <!--                                                    <div class="notification-body">-->
+                        <!--                                                        <p class="mb-1"><strong>University of Oxford</strong> created an-->
+                        <!--                                                            event : "Causal Inference Hilary 2019"</p>-->
+                        <!--                                                        <span class="notification-time"><span class="me-2" role="img"-->
+                        <!--                                                                                              aria-label="Emoji">✌️</span>1w</span>-->
+
+                        <!--                                                    </div>-->
+                        <!--                                                </a>-->
+
+                        <!--                                            </div>-->
+                        <!--                                            <div class="list-group-item">-->
+                        <!--                                                <a class="border-bottom-0 notification notification-flush" href="#!">-->
+                        <!--                                                    <div class="notification-avatar">-->
+                        <!--                                                        <div class="avatar avatar-xl me-3">-->
+                        <!--                                                            <img class="rounded-circle"-->
+                        <!--                                                                 src="../../assets/img/team/10.jpg" alt=""/>-->
+
+                        <!--                                                        </div>-->
+                        <!--                                                    </div>-->
+                        <!--                                                    <div class="notification-body">-->
+                        <!--                                                        <p class="mb-1"><strong>James Cameron</strong> invited to join-->
+                        <!--                                                            the group: United Nations International Children's Fund</p>-->
+                        <!--                                                        <span class="notification-time"><span class="me-2" role="img"-->
+                        <!--                                                                                              aria-label="Emoji">🙋‍</span>2d</span>-->
+
+                        <!--                                                    </div>-->
+                        <!--                                                </a>-->
+
+                        <!--                                            </div>-->
+                        <!--                                        </div>-->
+                        <!--                                    </div>-->
+                        <!--                                    <div class="card-footer text-center border-top"><a class="card-link d-block"-->
+                        <!--                                                                                       href="../../app/social/notifications.html">View-->
+                        <!--                                        all</a></div>-->
+                        <!--                                </div>-->
+                        <!--                            </div>-->
+
+                        <!--                        </li>-->
+                        <!--                        <li class="nav-item dropdown px-1">-->
+                        <!--                            <a class="nav-link fa-icon-wait nine-dots p-1" id="navbarDropdownMenu" role="button"-->
+                        <!--                               data-hide-on-body-scroll="data-hide-on-body-scroll" data-bs-toggle="dropdown"-->
+                        <!--                               aria-haspopup="true" aria-expanded="false">-->
+                        <!--                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="43" viewBox="0 0 16 16"-->
+                        <!--                                     fill="none">-->
+                        <!--                                    <circle cx="2" cy="2" r="2" fill="#6C6E71"></circle>-->
+                        <!--                                    <circle cx="2" cy="8" r="2" fill="#6C6E71"></circle>-->
+                        <!--                                    <circle cx="2" cy="14" r="2" fill="#6C6E71"></circle>-->
+                        <!--                                    <circle cx="8" cy="8" r="2" fill="#6C6E71"></circle>-->
+                        <!--                                    <circle cx="8" cy="14" r="2" fill="#6C6E71"></circle>-->
+                        <!--                                    <circle cx="14" cy="8" r="2" fill="#6C6E71"></circle>-->
+                        <!--                                    <circle cx="14" cy="14" r="2" fill="#6C6E71"></circle>-->
+                        <!--                                    <circle cx="8" cy="2" r="2" fill="#6C6E71"></circle>-->
+                        <!--                                    <circle cx="14" cy="2" r="2" fill="#6C6E71"></circle>-->
+                        <!--                                </svg>-->
+                        <!--                            </a>-->
+                        <!--                            <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-caret-bg"-->
+                        <!--                                 aria-labelledby="navbarDropdownMenu">-->
+                        <!--                                <div class="card shadow-none">-->
+                        <!--                                    <div class="scrollbar-overlay nine-dots-dropdown">-->
+                        <!--                                        <div class="card-body px-3">-->
+                        <!--                                            <div class="row text-center gx-0 gy-0">-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="../../pages/user/profile.html" target="_blank">-->
+                        <!--                                                    <div class="avatar avatar-2xl"><img class="rounded-circle"-->
+                        <!--                                                                                        src="../../assets/img/team/3.jpg"-->
+                        <!--                                                                                        alt=""/></div>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11">Account</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="https://themewagon.com/" target="_blank"><img-->
+                        <!--                                                        class="rounded" src="../../assets/img/nav-icons/themewagon.png"-->
+                        <!--                                                        alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Themewagon</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="https://mailbluster.com/" target="_blank"><img-->
+                        <!--                                                        class="rounded" src="../../assets/img/nav-icons/mailbluster.png"-->
+                        <!--                                                        alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Mailbluster</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/google.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Google</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/spotify.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Spotify</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/steam.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Steam</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/github-light.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Github</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/discord.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Discord</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/xbox.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">xbox</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/trello.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Kanban</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/hp.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">Hp</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-12">-->
+                        <!--                                                    <hr class="my-3 mx-n3 bg-200"/>-->
+                        <!--                                                </div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/linkedin.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Linkedin</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/twitter.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Twitter</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/facebook.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Facebook</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/instagram.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Instagram</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/pinterest.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Pinterest</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/slack.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Slack</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="#!" target="_blank"><img class="rounded"-->
+                        <!--                                                                                       src="../../assets/img/nav-icons/deviantart.png"-->
+                        <!--                                                                                       alt="" width="40" height="40"/>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11 pt-1">-->
+                        <!--                                                        Deviantart</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-4"><a-->
+                        <!--                                                        class="d-block hover-bg-200 px-2 py-3 rounded-3 text-center text-decoration-none"-->
+                        <!--                                                        href="../../app/events/event-detail.html" target="_blank">-->
+                        <!--                                                    <div class="avatar avatar-2xl">-->
+                        <!--                                                        <div class="avatar-name rounded-circle bg-primary-subtle text-primary">-->
+                        <!--                                                            <span class="fs-7">E</span></div>-->
+                        <!--                                                    </div>-->
+                        <!--                                                    <p class="mb-0 fw-medium text-800 text-truncate fs-11">Events</p>-->
+                        <!--                                                </a></div>-->
+                        <!--                                                <div class="col-12"><a class="btn btn-outline-primary btn-sm mt-4"-->
+                        <!--                                                                       href="#!">Show more</a></div>-->
+                        <!--                                            </div>-->
+                        <!--                                        </div>-->
+                        <!--                                    </div>-->
+                        <!--                                </div>-->
+                        <!--                            </div>-->
+
+                        <!--                        </li>-->
+                        <!--                        <li class="nav-item dropdown"><a class="nav-link pe-0 ps-2" id="navbarDropdownUser"-->
+                        <!--                                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true"-->
+                        <!--                                                         aria-expanded="false">-->
+                        <!--                            <div class="avatar avatar-xl">-->
+                        <!--                                <img class="rounded-circle" src="../../assets/img/team/3-thumb.png" alt=""/>-->
+
+                        <!--                            </div>-->
+                        <!--                        </a>-->
+                        <!--                            <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end py-0"-->
+                        <!--                                 aria-labelledby="navbarDropdownUser">-->
+                        <!--                                <div class="bg-white dark__bg-1000 rounded-2 py-2">-->
+                        <!--                                    <a class="dropdown-item fw-bold text-warning" href="#!"><span-->
+                        <!--                                            class="fas fa-crown me-1"></span><span>Go Pro</span></a>-->
+
+                        <!--                                    <div class="dropdown-divider"></div>-->
+                        <!--                                    <a class="dropdown-item" href="#!">Set status</a>-->
+                        <!--                                    <a class="dropdown-item" href="../../pages/user/profile.html">Profile &amp;-->
+                        <!--                                        account</a>-->
+                        <!--                                    <a class="dropdown-item" href="#!">Feedback</a>-->
+
+                        <!--                                    <div class="dropdown-divider"></div>-->
+                        <!--                                    <a class="dropdown-item" href="../../pages/user/settings.html">Settings</a>-->
+                        <!--                                    <a class="dropdown-item"-->
+                        <!--                                       href="../../pages/authentication/card/logout.html">Logout</a>-->
+                        <!--                                </div>-->
+                        <!--                            </div>-->
+                        <!--                        </li>-->
+                        <li class="nav-item dropdown"><a class="nav-link pe-0 ps-2" id="navbarDropdownUser"
+                                                         role="button" data-bs-toggle="dropdown"
+                                                         aria-haspopup="true"
+                                                         aria-expanded="false">
+                            <div class="avatar avatar-xl">
+                                <img class="rounded-circle" src="/static/img/team/3-thumb.png" alt=""/>
+
+                            </div>
+                        </a>
+                            <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end py-0"
+                                 aria-labelledby="navbarDropdownUser">
+                                <div class="bg-white dark__bg-1000 rounded-2 py-2">
+                                    <!--                                    <a class="dropdown-item fw-bold text-warning" href="#!"><span-->
+                                    <!--                                            class="fas fa-crown me-1"></span><span>Go Pro</span></a>-->
+
+                                    <!--                                    <div class="dropdown-divider"></div>-->
+                                    <!--                                    <a class="dropdown-item" href="#!">Set status</a>-->
+                                    <!--                                    <a class="dropdown-item" href="../../../pages/user/profile.html">Profile &amp;-->
+                                    <!--                                        account</a>-->
+                                    <!--                                    <a class="dropdown-item" href="#!">Feedback</a>-->
+
+                                    <!--                                    <div class="dropdown-divider"></div>-->
+                                    <!--                                    <a class="dropdown-item" href="../../../pages/user/settings.html">Settings</a>-->
+                                    <a class="dropdown-item" href="/logout">Logout</a>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="row g-3">
+                    <div class="col-xl-4 order-xl-1">
+                        <div class="card">
+                            <div class="card-header bg-body-tertiary d-flex flex-between-center">
+                                <h5 class="mb-0">Order Summary</h5>
+                                <a class="btn btn-falcon-default btn-sm text-600"
+                                   href="/basket">
+                                    <span class="fas fa-pencil-alt"></span>
+                                </a>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless fs-10 mb-0">
+                                    {{range .Form.Products}}
+                                    <tr class="border-bottom">
+                                        <th class="ps-0 pt-0">{{.ProductName}}
+                                            <a class="text-400 fw-normal fs-11">
+                                                    <span class="d-inline-block text-truncate text-card-mobile">
+                                                    {{.ProductDescription}}
+                                                    </span>
+                                            </a>
+
+                                            <!--                                            <div class="text-400 fw-normal fs-11">{{.ProductDescription}}-->
+                                            <!--                                            </div>-->
+                                        </th>
+                                        <th class="pe-0 text-end pt-0">${{.ProductSubtotal}}</th>
+                                    </tr>
+                                    {{end}}
+                                    <tr class="border-bottom">
+                                        <th class="ps-0">Subtotal</th>
+                                        <th class="pe-0 text-end">${{.Form.BasketSubtotal}}</th>
+                                    </tr>
+                                    <!--                                    <tr class="border-bottom">-->
+                                    <!--                                        <th class="ps-0">Coupon: <span class="text-success">40SITEWIDE</span></th>-->
+                                    <!--                                        <th class="pe-0 text-end">-$55</th>-->
+                                    <!--                                    </tr>-->
+                                    <tr class="border-bottom">
+                                        <th class="ps-0">Shipping</th>
+                                        <th class="pe-0 text-end">${{.Form.Shipping}}</th>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <th class="ps-0">Taxes ({{.Form.TaxesPercentage}}%)</th>
+                                        <th class="pe-0 text-end">${{.Form.Taxes}}</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="ps-0 pb-0">Total</th>
+                                        <th class="pe-0 text-end pb-0">${{.Form.Total}}</th>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="card-footer d-flex justify-content-between bg-body-tertiary">
+                                <div class="fw-semi-bold">Payable Total</div>
+                                <div class="fw-bold">${{.Form.Total}}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-8">
+                        <div class="card mb-3">
+                            <div class="card-header bg-body-tertiary">
+                                <div class="row flex-between-center">
+                                    <div class="col-sm-auto">
+                                        <h5 class="mb-2 mb-sm-0">Your Shipping Address</h5>
+                                    </div>
+                                    <div class="col-sm-auto"><a class="btn btn-falcon-default btn-sm" href="/addresses/new"><span
+                                            class="fas fa-plus me-2" data-fa-transform="shrink-2"></span>Add New Address
+                                    </a></div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {{with .Form.Validator.FieldErrors.BasketItems}}
+                                    <div class="alert alert-warning border-0 d-flex align-items-center" role="alert">
+                                        <div class="bg-warning me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
+                                        <p class="mb-0 flex-1">{{.}}</p>
+                                    </div>
+                                    {{end}}
+                                    {{with .Form.Validator.FieldErrors.ShippingAddress}}
+                                    <div class="alert alert-warning border-0 d-flex align-items-center" role="alert">
+                                        <div class="bg-warning me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
+                                        <p class="mb-0 flex-1">{{.}}</p>
+                                    </div>
+                                    {{end}}
+                                    {{range .Form.Addresses}}
+                                    <div class="col-md-6 mb-3 mb-md-0">
+                                        <div class="form-check mb-0 custom-radio radio-select">
+                                            <input class="form-check-input" id="address-{{.ID}}}" type="radio"
+                                                   name="ShippingAddress" value="{{.ID}}"/>
+
+                                            <label class="form-check-label mb-0 fw-bold d-block" for="address-{{.ID}}}">{{.MainStreet}}
+                                                {{.Numeration}}
+                                                <span class="radio-select-content">
+                                                    <span> {{.MainStreet}} {{.Numeration}},
+                                                        <br/>{{.SecondaryStreet}},<br/>
+                                                        {{.Country}} - {{.State}} - {{.City}}<br/>
+                                                        <span class="d-block mb-0 pt-2">{{.Phone}}</span>
+                                                    </span>
+                                                </span>
+                                            </label><a class="fs-10" href="/addresses/{{.ID}}">Edit</a>
+                                        </div>
+                                    </div>
+                                    {{end}}
+                                    <!--                                    <div class="col-md-6">-->
+                                    <!--                                        <div class="position-relative">-->
+                                    <!--                                            <div class="form-check mb-0 custom-radio radio-select">-->
+                                    <!--                                                <input class="form-check-input" id="address-2" type="radio"-->
+                                    <!--                                                       name="clientName"/>-->
+                                    <!--                                                <label class="form-check-label mb-0 fw-bold d-block" for="address-2">Robert-->
+                                    <!--                                                    Bruce<span class="radio-select-content"><span>3448 Ile De France St #242<br/>Fort Wainwright, <br/>Alaska, 99703<span-->
+                                    <!--                                                            class="d-block mb-0 pt-2">+(901) 637-734</span></span></span></label><a-->
+                                    <!--                                                    class="fs-10" href="#!">Edit</a>-->
+                                    <!--                                            </div>-->
+                                    <!--                                        </div>-->
+                                    <!--                                    </div>-->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header bg-body-tertiary">
+                                <h5 class="mb-0">Payment Method</h5>
+                            </div>
+                            <div class="card-body">
+                                <!--                                <div class="form-check mb-0">-->
+                                <!--                                    <input class="form-check-input" type="radio" value="" id="credit-card"-->
+                                <!--                                           checked="checked" name="payment-method"/>-->
+                                <!--                                    <label class="form-check-label mb-2 fs-8" for="credit-card">Credit Card-->
+                                <!--                                    </label>-->
+                                <!--                                </div>-->
+                                <!--                                <div class="row gx-0 ps-2 mb-4">-->
+                                <!--                                    <div class="col-sm-8 px-3">-->
+                                <!--                                        <div class="mb-3">-->
+                                <!--                                            <label class="form-label ls text-uppercase text-600 fw-semi-bold mb-0"-->
+                                <!--                                                   for="inputNumber">Card Number</label>-->
+                                <!--                                            <input class="form-control" id="inputNumber" type="text"-->
+                                <!--                                                   placeholder="•••• •••• •••• ••••"/>-->
+                                <!--                                        </div>-->
+                                <!--                                        <div class="row align-items-center">-->
+                                <!--                                            <div class="col-6">-->
+                                <!--                                                <label class="form-label ls text-uppercase text-600 fw-semi-bold mb-0">Exp-->
+                                <!--                                                    Date</label>-->
+                                <!--                                                <input class="form-control" type="text" placeholder="mm/yyyy"/>-->
+                                <!--                                            </div>-->
+                                <!--                                            <div class="col-6">-->
+                                <!--                                                <label class="form-label ls text-uppercase text-600 fw-semi-bold mb-0">CVV<a-->
+                                <!--                                                        class="d-inline-block" href="#" data-bs-toggle="tooltip"-->
+                                <!--                                                        data-bs-placement="top"-->
+                                <!--                                                        title="Card verification value"><span-->
+                                <!--                                                        class="fa fa-question-circle ms-2"></span></a></label>-->
+                                <!--                                                <input class="form-control" type="text" placeholder="123"-->
+                                <!--                                                       maxlength="3" pattern="[0-9]{3}"/>-->
+                                <!--                                            </div>-->
+                                <!--                                        </div>-->
+                                <!--                                    </div>-->
+                                <!--                                    <div class="col-4 ps-3 text-center pt-2 d-none d-sm-block">-->
+                                <!--                                        <div class="rounded-1 p-2 mt-3 bg-100">-->
+                                <!--                                            <div class="text-uppercase fs-11 fw-bold">We Accept</div>-->
+                                <!--                                            <img src="../../assets/img/icons/icon-payment-methods-grid.png" alt=""-->
+                                <!--                                                 width="120"/>-->
+                                <!--                                        </div>-->
+                                <!--                                    </div>-->
+                                <!--                                </div>-->
+                                <div class="form-check d-flex align-items-center">
+                                    <input class="form-check-input" type="radio" value="" id="paypal"
+                                           name="payment-method" checked="checked"/>
+                                    <label class="form-check-label mb-0 ms-2" for="paypal"><img
+                                            src="/static/img/icons/icon-paypal-full.png" height="20" alt=""/>
+                                    </label>
+                                </div>
+                                <div class="border-bottom border-dashed my-5"></div>
+                                <div class="row">
+                                    <div class="col-md-7 col-xl-12 col-xxl-7 px-md-3 mb-xxl-0 position-relative">
+                                        <div class="d-flex"><img class="me-3"
+                                                                 src="/static/img/icons/shield.png" alt=""
+                                                                 width="60" height="60"/>
+                                            <div class="flex-1">
+                                                <h5 class="mb-2">Buyer Protection</h5>
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input" id="protection-option-1"
+                                                           type="checkbox" checked="checked"/>
+                                                    <label class="form-check-label mb-0" for="protection-option-1">
+                                                        <strong>Full Refund </strong>If you don't <br
+                                                            class="d-none d-md-block d-lg-none"/>receive your
+                                                        order</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" id="protection-option-2"
+                                                           type="checkbox" checked="checked"/>
+                                                    <label class="form-check-label mb-0" for="protection-option-2">
+                                                        <strong>Full or Partial Refund, </strong>If the product is
+                                                        not as described in details</label>
+                                                </div>
+                                                <a class="fs-10 ms-3 ps-2" href="#!">Learn More<span
+                                                        class="fas fa-caret-right ms-1"
+                                                        data-fa-transform="down-2">    </span></a>
+                                            </div>
+                                        </div>
+                                        <div class="vertical-line d-none d-md-block d-xl-none d-xxl-block"></div>
+                                    </div>
+                                    <div class="col-md-5 col-xl-12 col-xxl-5 ps-lg-4 ps-xl-2 ps-xxl-5 text-center text-md-start text-xl-center text-xxl-start">
+                                        <div class="border-bottom border-dashed d-block d-md-none d-xl-block d-xxl-none my-4"></div>
+                                        <div class="fs-7 fw-semi-bold">All Total: <span
+                                                class="text-primary">${{.Form.Total}}</span></div>
+                                        <button class="btn btn-success mt-3 px-5" type="submit">Confirm &amp; Pay
+                                        </button>
+                                        <p class="fs-10 mt-3 mb-0">By clicking <strong>Confirm & Pay </strong>button
+                                            you agree to the <a href="#!">Terms &amp; Conditions</a></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+<!-- ===============================================-->
+<!--    End of Main Content-->
+<!-- ===============================================-->
+{{end}}
