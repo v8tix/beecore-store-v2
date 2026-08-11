@@ -348,6 +348,7 @@ github.com/v8tix/beecore-hash-mod
 ## explicit; go 1.26
 github.com/v8tix/beecore-http/messages/baskets/v1
 github.com/v8tix/beecore-http/messages/common/v1
+github.com/v8tix/beecore-http/messages/orders/v1
 github.com/v8tix/beecore-http/messages/stores/v1
 github.com/v8tix/beecore-http/messages/users/v1
 github.com/v8tix/beecore-http/utils

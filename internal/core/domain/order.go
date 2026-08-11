@@ -34,3 +34,21 @@ type Order struct {
 	FinancialItem   FinancialLineItem
 	UpdatedAt       time.Time
 }
+
+// CreateOrderRequest is the input to resource.OrderRemote.CreateOrder — one
+// store's order, as built by the source repo's dto.toCreateOrderV1Req
+// (internal/business/core/dto/order_dto.go) from a single
+// common.FinancialItemV1 entry of a checked-out basket's financial
+// breakdown (orders.CreateOrderV1Req). The source repo's
+// cmd/web/payphone_handlers.go PayPhoneConfirm handler builds one of these
+// per store (dto.ToCreateOrdersV1Req) and calls CreateOrder once per
+// store — that orchestration is a Payment-slice concern (plan Task
+// 17/18), not reproduced here; this type only carries the shape CreateOrder
+// needs.
+type CreateOrderRequest struct {
+	UserID            string
+	PaymentID         string
+	BasketID          string
+	ShippingAddressID string
+	FinancialItem     FinancialLineItem
+}
