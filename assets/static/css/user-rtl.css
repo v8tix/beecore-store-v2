@@ -2,4 +2,31 @@
 /*                                Falcon Button                               */
 /* -------------------------------------------------------------------------- */
 /* prettier-ignore */
+:root {
+  --falcon-bg-navbar-glass: rgba(251, 246, 243, 0.96);
+  --falcon-notification-title-bg: #FBF6F3;
+  --falcon-notification-unread-bg: #f6ebe4;
+  --falcon-notification-unread-hover-bg: #f1dfd4;
+  --falcon-kanban-bg: #FBF6F3;
+  --falcon-kanban-btn-add-hover-bg: #f6ebe4;
+  --falcon-kanban-bg-attachment-bg: #f1dfd4;
+  --falcon-kanban-nav-link-card-details-hover-bg: #f6ebe4;
+  --falcon-bg-choices-close-button: #f6ebe4;
+  --falcon-dropdown-link-hover-bg-global: #FBF6F3;
+  --falcon-popover-header-bg-global: #FBF6F3;
+}
+
+[data-bs-theme=dark] {
+  --falcon-bg-navbar-glass: rgba(20, 21, 21, 0.96);
+  --falcon-notification-title-bg: #262828;
+  --falcon-notification-unread-bg: #353838;
+  --falcon-notification-unread-hover-bg: #3f4242;
+  --falcon-kanban-bg: #262828;
+  --falcon-kanban-btn-add-hover-bg: #3f4242;
+  --falcon-kanban-bg-attachment-bg: #494d4d;
+  --falcon-kanban-nav-link-card-details-hover-bg: #3f4242;
+  --falcon-bg-choices-close-button: #494d4d;
+  --falcon-dropdown-link-hover-bg-global: #262828;
+  --falcon-popover-header-bg-global: #262828;
+}
 /*# sourceMappingURL=user-rtl.css.map */
