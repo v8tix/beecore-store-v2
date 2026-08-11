@@ -6,8 +6,6 @@
 package basketremote
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -18,18 +16,13 @@ import (
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
 	"github.com/v8tix/beecore-store-v2/internal/core/port/resource"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/httpshared"
 )
 
 // Client is the outbound HTTP boundary for the basket vertical slice. It
 // holds *config.Cfg directly (same as source repo's BaseRepositoryImpl
 // struct) — the URLs and shared *http.Client it needs all live there
 // already.
-//
-// A repo-wide httpshared package doesn't exist yet, so
-// deadline/retryPolicy/buildAuthHeader/decodeHTTPError/translateHTTPError
-// are duplicated here rather than factored out prematurely, matching
-// authremote's, addressremote's, userremote's and productremote's existing
-// approach.
 type Client struct {
 	cfg *config.Cfg
 }
@@ -44,51 +37,23 @@ func NewClient(cfg *config.Cfg) *Client {
 // in the source repo: every call here is a single-record mutation or
 // lookup, so they use the config-tunable "fast" HTTP client profile.
 func (c *Client) deadline() time.Duration {
-	return c.cfg.HTTPClient.GetFast().Timeout.Duration()
+	return httpshared.Deadline(c.cfg)
 }
 
 func (c *Client) retryPolicy() kawa.RetryPolicy {
-	profile := c.cfg.HTTPClient.GetFast()
-	return kawa.NewExponentialRetryPolicy(profile.MaxRetries, profile.RetryInterval.Duration())
-}
-
-func buildAuthHeader(token string) map[string]string {
-	return map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", token),
-	}
-}
-
-// errMessage mirrors model.ErrMessage in the source repo — the shape of a
-// downstream error response body: {"error": "..."}.
-type errMessage struct {
-	Error string `json:"error"`
-}
-
-// decodeHTTPError extracts a kawa.ErrInvalidHTTPStatus's status code and
-// parsed error message from err. ok is false when err isn't an HTTP
-// status error (e.g. a network failure) — callers must propagate err as-is
-// in that case. parseErr is non-nil when the body isn't valid
-// errMessage JSON.
-func decodeHTTPError(err error) (statusCode int, message string, parseErr error, ok bool) {
-	var errHTTP kawa.ErrInvalidHTTPStatus
-	if !errors.As(err, &errHTTP) {
-		return 0, "", nil, false
-	}
-
-	var em errMessage
-	if unmarshalErr := json.Unmarshal(errHTTP.Body, &em); unmarshalErr != nil {
-		return errHTTP.StatusCode, "", unmarshalErr, true
-	}
-
-	return errHTTP.StatusCode, em.Error, nil, true
+	return httpshared.RetryPolicy(c.cfg)
 }
 
 // translateHTTPError turns a kawa.ErrInvalidHTTPStatus into a plain error
 // carrying the downstream response body's parsed message, for call sites
 // that don't need to distinguish specific downstream rejection reasons.
 // Non-HTTP errors (network failures) pass through unchanged.
+//
+// TODO(httpshared): this diverges from authremote's translateHTTPError —
+// see that package's TODO — unifying the two is deferred to its own
+// follow-up commit rather than folded into this dedup pass.
 func translateHTTPError(err error) error {
-	statusCode, message, parseErr, ok := decodeHTTPError(err)
+	statusCode, message, parseErr, ok := httpshared.DecodeHTTPError(err)
 	if !ok {
 		return err
 	}

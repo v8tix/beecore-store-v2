@@ -8,6 +8,7 @@ import (
 	"github.com/v8tix/kawa"
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/httpshared"
 )
 
 // UpdateUser mirrors BaseRepositoryImpl.UpdateUser. err is
@@ -36,13 +37,13 @@ func (c *Client) UpdateUser(
 	}
 
 	call := kawa.NewCall[users.UpdateUserV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Put, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
 	_, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		statusCode, message, parseErr, ok := decodeHTTPError(err)
+		statusCode, message, parseErr, ok := httpshared.DecodeHTTPError(err)
 		if !ok {
 			return err
 		}

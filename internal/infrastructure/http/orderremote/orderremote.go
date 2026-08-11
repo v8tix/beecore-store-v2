@@ -8,6 +8,7 @@ import (
 	"github.com/v8tix/kawa"
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/httpshared"
 )
 
 // CreateOrder mirrors BaseRepositoryImpl.CreateOrder: POST orders.
@@ -22,7 +23,7 @@ func (c *Client) CreateOrder(ctx context.Context, req domain.CreateOrderRequest,
 	}
 
 	call := kawa.NewCall[orders.CreateOrderV1Req, orders.GetOrderEnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -43,7 +44,7 @@ func (c *Client) GetOrder(ctx context.Context, orderID, token string) (domain.Or
 	url := fmt.Sprintf("%s/%s/%s", c.cfg.Integration.V1.OrdersURL, "orders", orderID)
 
 	call := kawa.NewCall[kawa.NoReq, orders.GetOrderEnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -73,7 +74,7 @@ func (c *Client) GetOrdersByUserID(ctx context.Context, userID, token string) ([
 
 	profile := c.cfg.HTTPClient.GetSlow()
 	call := kawa.NewCall[kawa.NoReq, orders.GetOrdersByUserIDEnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(profile.Timeout.Duration()).
 		WithRetryPolicy(kawa.NewExponentialRetryPolicy(profile.MaxRetries, profile.RetryInterval.Duration()))
 
@@ -99,7 +100,7 @@ func (c *Client) CancelOrder(ctx context.Context, orderID, token string) error {
 	url := fmt.Sprintf("%s/%s/%s", c.cfg.Integration.V1.OrdersURL, "orders", orderID)
 
 	call := kawa.NewCall[kawa.NoReq, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Delete, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -113,7 +114,7 @@ func (c *Client) CompleteOrder(ctx context.Context, orderID, invoiceID, token st
 	req := orders.CompleteOrderV1Req{InvoiceID: invoiceID}
 
 	call := kawa.NewCall[orders.CompleteOrderV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Put, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -126,7 +127,7 @@ func (c *Client) ReadyOrder(ctx context.Context, orderID, token string) error {
 	url := fmt.Sprintf("%s/%s/%s/%s", c.cfg.Integration.V1.OrdersURL, "orders", orderID, "ready")
 
 	call := kawa.NewCall[kawa.NoReq, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Put, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 

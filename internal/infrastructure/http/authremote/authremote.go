@@ -9,6 +9,7 @@ import (
 	"github.com/v8tix/kawa"
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/httpshared"
 )
 
 // GetAdminToken returns the cached admin service-account token, mirroring
@@ -33,9 +34,9 @@ func (c *Client) FindTokenByEmailAndPassword(ctx context.Context, email, passwor
 			return "", err
 		}
 
-		authHeader = buildAuthHeader(adminToken)
+		authHeader = httpshared.BuildAuthHeader(adminToken)
 	} else {
-		authHeader = buildAuthHeader(token)
+		authHeader = httpshared.BuildAuthHeader(token)
 	}
 
 	req := users.GetTokenV1Req{Email: email, Password: password}
@@ -65,13 +66,13 @@ func (c *Client) FindUserByID(ctx context.Context, id, token string) (domain.Use
 	url := fmt.Sprintf("%s/%s/%s", c.cfg.Integration.V1.AuthURL, "users", id)
 
 	call := kawa.NewCall[kawa.NoReq, users.UserV1EnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
 	env, err := call.DoWithRetry(ctx, nil)
 	if err != nil {
-		statusCode, _, _, ok := decodeHTTPError(err)
+		statusCode, _, _, ok := httpshared.DecodeHTTPError(err)
 		if !ok {
 			return domain.User{}, err
 		}
@@ -97,13 +98,13 @@ func (c *Client) FindUserByEmail(ctx context.Context, email, token string) (doma
 	req := users.GetUserByEmailV1Req{Email: email}
 
 	call := kawa.NewCall[users.GetUserByEmailV1Req, users.GetUserByEmailEnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
 	env, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		statusCode, _, _, ok := decodeHTTPError(err)
+		statusCode, _, _, ok := httpshared.DecodeHTTPError(err)
 		if !ok {
 			return domain.User{}, err
 		}
@@ -131,13 +132,13 @@ func (c *Client) FindUserByEmailAndPassword(ctx context.Context, email, password
 	req := users.GetUserByEmailAndPasswordV1Req{Email: email, Password: password}
 
 	call := kawa.NewCall[users.GetUserByEmailAndPasswordV1Req, users.UserV1EnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
 	env, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		_, message, parseErr, ok := decodeHTTPError(err)
+		_, message, parseErr, ok := httpshared.DecodeHTTPError(err)
 		if !ok {
 			return domain.User{}, err
 		}
@@ -174,7 +175,7 @@ func (c *Client) FindUserTokenByEmailAndPassword(ctx context.Context, email, pas
 	req := users.GetTokenV1Req{Email: email, Password: password}
 
 	call := kawa.NewCall[users.GetTokenV1Req, users.GetTokenEnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -204,7 +205,7 @@ func (c *Client) RegisterUser(ctx context.Context, firstName, lastName, email, p
 	}
 
 	call := kawa.NewCall[users.RegisterUserV1Req, users.RegisterUserEnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -227,7 +228,7 @@ func (c *Client) SendResetPasswdEmail(ctx context.Context, email, token string) 
 	req := users.ResetUserPasswordV1Req{Email: email}
 
 	call := kawa.NewCall[users.ResetUserPasswordV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Post, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -248,13 +249,13 @@ func (c *Client) ActivateUser(ctx context.Context, token, userID, activationToke
 	req := users.ActivateUserV1Req{ID: userID, Token: activationToken}
 
 	call := kawa.NewCall[users.ActivateUserV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Patch, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
 	_, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		_, message, parseErr, ok := decodeHTTPError(err)
+		_, message, parseErr, ok := httpshared.DecodeHTTPError(err)
 		if !ok {
 			return err
 		}
@@ -278,7 +279,7 @@ func (c *Client) UpdateUserPassword(ctx context.Context, userID, password, confi
 	req := users.UpdateUserPasswordV1Req{Password: password, ConfirmPassword: confirmPassword}
 
 	call := kawa.NewCall[users.UpdateUserPasswordV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Patch, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -316,13 +317,13 @@ func (c *Client) RefreshUserToken(ctx context.Context, userID, refreshToken, tok
 	req := refreshTokenV1Req{UserID: userID, RefreshToken: refreshToken}
 
 	call := kawa.NewCall[refreshTokenV1Req, users.GetTokenEnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
 	env, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		statusCode, _, _, ok := decodeHTTPError(err)
+		statusCode, _, _, ok := httpshared.DecodeHTTPError(err)
 		if ok && (statusCode == 401 || statusCode == 403) {
 			return "", domain.ErrSessionRejected
 		}

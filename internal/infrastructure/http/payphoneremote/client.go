@@ -19,18 +19,13 @@ import (
 	"github.com/v8tix/kawa"
 
 	"github.com/v8tix/beecore-store-v2/internal/core/port/resource"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/httpshared"
 )
 
 // Client is the outbound HTTP boundary for the payment vertical slice. It
 // holds *config.Cfg directly (same as source repo's BaseRepositoryImpl
 // struct) — the Payphone.Token/BaseURL and BusinessParameters.Country.Taxes
 // config it needs, and the shared *http.Client, all live there already.
-//
-// No repo-wide httpshared package exists yet, so
-// deadline/retryPolicy/buildAuthHeader are duplicated here rather than
-// factored out prematurely, matching orderremote's, authremote's,
-// addressremote's, userremote's, productremote's and basketremote's
-// existing approach.
 type Client struct {
 	cfg *config.Cfg
 }
@@ -48,12 +43,11 @@ func NewClient(cfg *config.Cfg) *Client {
 // orderremote's GetOrdersByUserID, PayPhoneRepositoryStrategy.
 // callConfirmAPI in the source repo does not override it).
 func (c *Client) deadline() time.Duration {
-	return c.cfg.HTTPClient.GetFast().Timeout.Duration()
+	return httpshared.Deadline(c.cfg)
 }
 
 func (c *Client) retryPolicy() kawa.RetryPolicy {
-	profile := c.cfg.HTTPClient.GetFast()
-	return kawa.NewExponentialRetryPolicy(profile.MaxRetries, profile.RetryInterval.Duration())
+	return httpshared.RetryPolicy(c.cfg)
 }
 
 // buildPayPhoneHeaders mirrors the headers map built inline by

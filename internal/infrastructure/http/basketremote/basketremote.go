@@ -9,6 +9,7 @@ import (
 	"github.com/v8tix/kawa"
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/httpshared"
 )
 
 // CreateBasket mirrors BaseRepositoryImpl.CreateBasket: POST baskets.
@@ -17,7 +18,7 @@ func (c *Client) CreateBasket(ctx context.Context, userID, token string) (string
 	req := baskets.StartBasketV1Req{UserID: userID}
 
 	call := kawa.NewCall[baskets.StartBasketV1Req, baskets.StartBasketEnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -38,7 +39,7 @@ func (c *Client) FindBasket(ctx context.Context, id, token string) (domain.Baske
 	url := fmt.Sprintf("%s/%s/%s", c.cfg.Integration.V1.BasketsURL, "baskets", id)
 
 	call := kawa.NewCall[kawa.NoReq, baskets.GetBasketEnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -62,13 +63,13 @@ func (c *Client) BasketAddItem(ctx context.Context, id, productID string, quanti
 	req := baskets.AddOrRemoveItemV1Req{ProductID: productID, Quantity: quantity}
 
 	call := kawa.NewCall[baskets.AddOrRemoveItemV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Put, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
 	_, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		statusCode, _, _, ok := decodeHTTPError(err)
+		statusCode, _, _, ok := httpshared.DecodeHTTPError(err)
 		if ok && statusCode == http.StatusConflict {
 			return domain.ErrBasketCheckedOut
 		}
@@ -86,7 +87,7 @@ func (c *Client) BasketRemoveItem(ctx context.Context, id, productID string, qua
 	req := baskets.AddOrRemoveItemV1Req{ProductID: productID, Quantity: quantity}
 
 	call := kawa.NewCall[baskets.AddOrRemoveItemV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Put, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -105,7 +106,7 @@ func (c *Client) CheckoutBasket(ctx context.Context, id, paymentID, shippingAddr
 	req := baskets.CheckoutBasketV1Req{PaymentID: paymentID, ShippingAddressID: shippingAddressID}
 
 	call := kawa.NewCall[baskets.CheckoutBasketV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Put, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -123,7 +124,7 @@ func (c *Client) CancelBasket(ctx context.Context, id, token string) error {
 	url := fmt.Sprintf("%s/%s/%s", c.cfg.Integration.V1.BasketsURL, "baskets", id)
 
 	call := kawa.NewCall[kawa.NoReq, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Delete, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -141,7 +142,7 @@ func (c *Client) FindBasketByUserID(ctx context.Context, userID, token string) (
 	url := fmt.Sprintf("%s/%s/%s/%s/%s", c.cfg.Integration.V1.BasketsURL, "baskets", "opened", "users", userID)
 
 	call := kawa.NewCall[kawa.NoReq, baskets.GetBasketByUserIDEnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -163,7 +164,7 @@ func (c *Client) ComputeFinancials(ctx context.Context, id, token string) (domai
 	url := fmt.Sprintf("%s/%s/%s/%s", c.cfg.Integration.V1.BasketsURL, "baskets", id, "financials")
 
 	call := kawa.NewCall[kawa.NoReq, baskets.GetFinancialItemsEnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 

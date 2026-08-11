@@ -9,6 +9,7 @@ import (
 	"github.com/v8tix/kawa"
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/httpshared"
 )
 
 // FindProduct mirrors BaseRepositoryImpl.FindProduct: GET
@@ -17,7 +18,7 @@ func (c *Client) FindProduct(ctx context.Context, id, token string) (domain.Prod
 	productURL := fmt.Sprintf("%s/%s/%s/%s", c.cfg.Integration.V1.StoresURL, "stores", "products", id)
 
 	call := kawa.NewCall[kawa.NoReq, stores.GetProductEnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, productURL).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -45,7 +46,7 @@ func (c *Client) FindPaginatedProducts(ctx context.Context, searchTerm string, p
 	countURL = countURL + "?" + cq.Encode()
 
 	countCall := kawa.NewCall[kawa.NoReq, stores.GetProductsSearchCountEnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, countURL).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -66,7 +67,7 @@ func (c *Client) FindPaginatedProducts(ctx context.Context, searchTerm string, p
 	searchURL = searchURL + "?" + sq.Encode()
 
 	searchCall := kawa.NewCall[kawa.NoReq, stores.GetProductsEnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, searchURL).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 

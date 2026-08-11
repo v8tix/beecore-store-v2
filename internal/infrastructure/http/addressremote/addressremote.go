@@ -8,6 +8,7 @@ import (
 	"github.com/v8tix/kawa"
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/httpshared"
 )
 
 // FindAddressesByUserID mirrors BaseRepositoryImpl.FindAddressesByUserID.
@@ -15,7 +16,7 @@ func (c *Client) FindAddressesByUserID(ctx context.Context, userID, token string
 	url := fmt.Sprintf("%s/%s/%s/%s", c.cfg.Integration.V1.AuthURL, "users", userID, "addresses")
 
 	call := kawa.NewCall[kawa.NoReq, users.GetAddressesV1EnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
@@ -55,13 +56,13 @@ func (c *Client) HasAddresses(ctx context.Context, userID, token string) (bool, 
 	url := fmt.Sprintf("%s/%s/%s/%s", c.cfg.Integration.V1.AuthURL, "users", userID, "addresses")
 
 	call := kawa.NewCall[kawa.NoReq, users.GetAddressesV1EnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
 	env, err := call.DoWithRetry(ctx, nil)
 	if err != nil {
-		_, _, parseErr, ok := decodeHTTPError(err)
+		_, _, parseErr, ok := httpshared.DecodeHTTPError(err)
 		if !ok {
 			return false, "", err
 		}
@@ -111,13 +112,13 @@ func (c *Client) InsertAddress(
 	}
 
 	call := kawa.NewCall[users.RegisterAddressV1Req, users.RegisterAddressEnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 
 	env, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		_, message, parseErr, ok := decodeHTTPError(err)
+		_, message, parseErr, ok := httpshared.DecodeHTTPError(err)
 		if !ok {
 			return "", err
 		}
@@ -167,7 +168,7 @@ func (c *Client) UpdateAddress(
 	}
 
 	call := kawa.NewCall[users.UpdateAddressV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Put, url).
-		WithHeaders(buildAuthHeader(token)).
+		WithHeaders(httpshared.BuildAuthHeader(token)).
 		WithDeadline(c.deadline()).
 		WithRetryPolicy(c.retryPolicy())
 

@@ -6,7 +6,6 @@
 package productremote
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/v8tix/beecore-eda/config"
@@ -15,17 +14,13 @@ import (
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
 	"github.com/v8tix/beecore-store-v2/internal/core/port/resource"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/httpshared"
 )
 
 // Client is the outbound HTTP boundary for the product vertical slice. It
 // holds *config.Cfg directly (same as source repo's BaseRepositoryImpl
 // struct) — the URLs and shared *http.Client it needs all live there
 // already.
-//
-// No repo-wide httpshared package exists yet, so
-// deadline/retryPolicy/buildAuthHeader are duplicated here rather than
-// factored out prematurely, matching authremote's, userremote's and
-// addressremote's existing approach.
 type Client struct {
 	cfg *config.Cfg
 }
@@ -42,18 +37,11 @@ func NewClient(cfg *config.Cfg) *Client {
 // unlike order's GetOrdersByUserID (Task 15), no call here needs the
 // "slow" profile.
 func (c *Client) deadline() time.Duration {
-	return c.cfg.HTTPClient.GetFast().Timeout.Duration()
+	return httpshared.Deadline(c.cfg)
 }
 
 func (c *Client) retryPolicy() kawa.RetryPolicy {
-	profile := c.cfg.HTTPClient.GetFast()
-	return kawa.NewExponentialRetryPolicy(profile.MaxRetries, profile.RetryInterval.Duration())
-}
-
-func buildAuthHeader(token string) map[string]string {
-	return map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", token),
-	}
+	return httpshared.RetryPolicy(c.cfg)
 }
 
 // toDomainProduct maps a stores.GetProductV1Res wire value onto
