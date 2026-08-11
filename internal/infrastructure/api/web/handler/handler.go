@@ -9,6 +9,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -18,6 +19,15 @@ import (
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
 	"github.com/v8tix/beecore-store-v2/internal/version"
 )
+
+// errAuthenticatedUserRequired mirrors ErrAuthenticatedUserRequired in the
+// source repo's cmd/web/context.go — returned when a handler that assumes
+// an authenticated user in context (populated by the composition root's
+// authenticate middleware, which doesn't exist in this repo yet) finds
+// none. Shared by every handler in this package that has that same
+// assumption (UserHandler, AddressHandler), mirroring how each of their
+// source counterparts referenced the same package-level var.
+var errAuthenticatedUserRequired = errors.New("authenticated user is required")
 
 type contextKey string
 
