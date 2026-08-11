@@ -17,9 +17,8 @@ func DecodePostForm(r *http.Request, dst any) error {
 
 	err = decoder.Decode(dst, r.PostForm)
 	if err != nil {
-		var invalidDecoderError *form.InvalidDecoderError
 
-		if errors.As(err, &invalidDecoderError) {
+		if _, ok := errors.AsType[*form.InvalidDecoderError](err); ok {
 			panic(err)
 		}
 	}
@@ -30,9 +29,8 @@ func DecodePostForm(r *http.Request, dst any) error {
 func DecodeQueryString(r *http.Request, dst any) error {
 	err := decoder.Decode(dst, r.PostForm)
 	if err != nil {
-		var invalidDecoderError *form.InvalidDecoderError
 
-		if errors.As(err, &invalidDecoderError) {
+		if _, ok := errors.AsType[*form.InvalidDecoderError](err); ok {
 			panic(err)
 		}
 	}

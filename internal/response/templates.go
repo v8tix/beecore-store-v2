@@ -3,6 +3,7 @@ package response
 import (
 	"bytes"
 	"html/template"
+	"maps"
 	"net/http"
 	"net/url"
 
@@ -80,9 +81,7 @@ func NamedTemplateWithHeadersAndQueryParams(
 		return err
 	}
 
-	for key, value := range headers {
-		w.Header()[key] = value
-	}
+	maps.Copy(w.Header(), headers)
 
 	u, err := url.Parse(r.URL.String())
 	if err != nil {
@@ -126,9 +125,7 @@ func NamedTemplateWithHeaders(
 		return err
 	}
 
-	for key, value := range headers {
-		w.Header()[key] = value
-	}
+	maps.Copy(w.Header(), headers)
 
 	w.WriteHeader(status)
 	buf.WriteTo(w)
