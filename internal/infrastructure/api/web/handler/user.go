@@ -20,15 +20,20 @@ import (
 
 // UserHandler holds the chi handler ported from the updateUserWizard
 // section of cmd/web/handlers.go in the source repo. It calls
-// port/service.User only for the actual profile update; loading and
-// re-saving the session record around that call is still handler-level
-// plumbing here, mirroring the source's currentSession/updateSession
-// helpers, since their equivalent hasn't been ported as shared middleware
-// yet (composition-root wiring, plan Task 19) — once it is, this handler
-// can be thinned further to pick up whatever that middleware resolves
-// instead of doing it itself.
+// port/service.User for the profile update and port/service.Basket for the
+// wizard's CreateBasket sub-step (see UpdateWizard's doc comment); loading
+// and re-saving the session record around those calls is still
+// handler-level plumbing here, mirroring the source's currentSession/
+// updateSession helpers, since their equivalent hasn't been ported as
+// shared middleware yet (composition-root wiring, plan Task 19) — once it
+// is, this handler can be thinned further to pick up whatever that
+// middleware resolves instead of doing it itself.
 type UserHandler struct {
 	UserService service.User
+
+	// BasketService resolves UpdateWizard's CreateBasket sub-step — see
+	// its doc comment.
+	BasketService service.Basket
 
 	// Sessions/SessionCookieName resolve the browser's opaque session-ID
 	// cookie, same as AuthHandler's identically-named fields.
@@ -49,6 +54,7 @@ type UserHandler struct {
 
 func NewUserHandler(
 	userService service.User,
+	basketService service.Basket,
 	sessionStore resource.SessionStore,
 	cookieStore *sessions.CookieStore,
 	sessionTTL time.Duration,
@@ -56,6 +62,7 @@ func NewUserHandler(
 ) *UserHandler {
 	return &UserHandler{
 		UserService:       userService,
+		BasketService:     basketService,
 		Sessions:          cookieStore,
 		SessionCookieName: keys.Session,
 		SessionStore:      sessionStore,
@@ -96,7 +103,13 @@ func (h *UserHandler) currentSession(r *http.Request) (sessionID string, sess do
 	return sessionID, sess, true
 }
 
-// UpdateWizard mirrors the updateUserWizard handler in the source repo.
+// UpdateWizard mirrors the updateUserWizard handler in the source repo,
+// including its final CreateBasket sub-step — deferred until the Basket
+// slice existed (plan Task 13/14) — now wired in via BasketService: unlike
+// AuthHandler.Login's early basket lookup, a CreateBasket failure here is a
+// genuine error (mirrors the source handler's serverErrorFromHTTP, not a
+// swallowed one), since a freshly onboarded user's wizard flow can't
+// proceed to checkout without a basket to add items to.
 func (h *UserHandler) UpdateWizard(w http.ResponseWriter, r *http.Request) {
 	var form struct {
 		IN          string              `form:"IN"`
@@ -184,15 +197,26 @@ func (h *UserHandler) UpdateWizard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// The source handler's next step here — creating the user's
-		// basket via CreateBasket and seeding the cookie's basket-ID
-		// value before redirecting — is not ported: that depends on
-		// resource.BasketRemote, which doesn't exist yet (Basket slice,
-		// plan Task 13/14). The redirect itself is what actually drives
-		// the wizard flow forward, so it's preserved directly; the
-		// basket-ID cookie step is picked back up once the Basket slice
-		// lands — same deferral AuthHandler.Login already documents for
-		// its own basket-lookup step.
+		// Mirrors the source handler's next step: create the user's basket
+		// and seed the cookie's basket-ID value before redirecting.
+		basketID, err := h.BasketService.Create(r.Context(), user.ID)
+		if err != nil {
+			serverError(h.Logger, w, r, err)
+			return
+		}
+
+		cookie, err := h.Sessions.Get(r, h.SessionCookieName)
+		if err != nil {
+			serverError(h.Logger, w, r, err)
+			return
+		}
+
+		cookie.Values[keys.SessionBasketID] = basketID
+		if err := cookie.Save(r, w); err != nil {
+			serverError(h.Logger, w, r, err)
+			return
+		}
+
 		http.Redirect(w, r, "/user/create/address", http.StatusSeeOther)
 	}
 }

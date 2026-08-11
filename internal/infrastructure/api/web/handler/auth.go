@@ -21,14 +21,20 @@ import (
 
 // AuthHandler holds the chi handlers ported from the login/signup/
 // activate/forgottenPassword/passwordReset sections of cmd/web/handlers.go
-// in the source repo. It calls port/service.Auth only — every downstream
+// in the source repo. It calls port/service.Auth (and, for Login's
+// basket-quantity-cookie step, port/service.Basket) only — every downstream
 // call and business decision those handlers used to make directly (via
 // kawa, through the shared BaseRepositoryImpl) now lives in core/auth's
-// use-case; this type keeps only what's still handler-appropriate:
-// request decode/validate, the browser session cookie, redirects, and
-// template rendering.
+// and core/basket's use-cases; this type keeps only what's still
+// handler-appropriate: request decode/validate, the browser session
+// cookie, redirects, and template rendering.
 type AuthHandler struct {
 	AuthService service.Auth
+
+	// BasketService resolves Login's basket-quantity-cookie step — see
+	// its doc comment. Not needed by Signup/Activate/ForgottenPassword/
+	// PasswordReset, which never touch a basket.
+	BasketService service.Basket
 
 	// Sessions is the gorilla cookie store holding the browser's opaque
 	// session-ID cookie (app.Session.SessionStore in the source repo,
@@ -40,9 +46,10 @@ type AuthHandler struct {
 	Logger            *slog.Logger
 }
 
-func NewAuthHandler(authService service.Auth, sessionStore *sessions.CookieStore, logger *slog.Logger) *AuthHandler {
+func NewAuthHandler(authService service.Auth, basketService service.Basket, sessionStore *sessions.CookieStore, logger *slog.Logger) *AuthHandler {
 	return &AuthHandler{
 		AuthService:       authService,
+		BasketService:     basketService,
 		Sessions:          sessionStore,
 		SessionCookieName: keys.Session,
 		Logger:            logger,
@@ -191,16 +198,22 @@ func (h *AuthHandler) Activate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Login mirrors the login handler in the source repo.
+// Login mirrors the login handler in the source repo, including its two
+// basket-quantity-cookie steps — deferred until the Basket slice existed
+// (plan Task 13/14; see core/auth.Login's doc comment for the deferral this
+// resolves), now wired in via BasketService:
 //
-// The source handler's final step — looking up the user's basket to seed
-// the cookie's item-quantity display before redirecting to /search — is
-// not ported here: that's browser-cookie state, not part of
-// domain.Session, and depends on resource.BasketRemote, which doesn't
-// exist yet (Basket slice, plan Task 13/14). Once fully onboarded (DNI and
-// shipping address both present), this handler redirects straight to
-// /search; the basket-quantity cookie step is picked back up when the
-// Basket slice lands.
+//   - Right after a successful AuthService.Login, BasketService.FindByUserID
+//     looks up the user's currently open basket and seeds the cookie's
+//     keys.SessionBasketID value — errors are silently ignored here,
+//     mirroring the source handler's own swallowed FindBasketByUserID
+//     error (a user simply doesn't have a basket cookie yet in that case).
+//   - Once fully onboarded (DNI and shipping address both present, the only
+//     path that reaches the final /search redirect), the cookie's basket ID
+//     must exist by then (a real error otherwise — mirrors the source
+//     handler's keys.ErrSessionBasketIDRequired check) — BasketService.FindByID
+//     loads its contents to recompute keys.SessionBasketItems via
+//     sumQuantities before the redirect.
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var form struct {
 		Email     string              `form:"Email"`
@@ -265,11 +278,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Mirrors the source handler's early FindBasketByUserID lookup: a
+		// failure here (e.g. the user has no open basket yet) is silently
+		// ignored, same as the source's `if err == nil { ... }`.
+		if basketID, err := h.BasketService.FindByUserID(r.Context(), user.ID); err == nil {
+			cookie.Values[keys.SessionBasketID] = basketID
+		}
+
 		// Only the opaque session ID is added to the cookie's identity
 		// slot — none of the tokens or PII in sess ever reach the
 		// browser. Every other cookie.Values entry (basket/pagination/
-		// search state, set elsewhere) is left untouched, mirroring
-		// createSession in the source repo's cmd/web/helpers.go.
+		// search state, set above and elsewhere) is left untouched,
+		// mirroring createSession in the source repo's cmd/web/helpers.go.
 		cookie.Values[keys.SessionID] = sessionID
 		if err := cookie.Save(r, w); err != nil {
 			serverError(h.Logger, w, r, err)
@@ -285,6 +305,28 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 		if sess.UserShippingAddress == "" {
 			http.Redirect(w, r, "/user/create/address", http.StatusSeeOther)
+			return
+		}
+
+		// Mirrors the source handler's late basket-quantity-cookie step:
+		// by this point (fully onboarded), the cookie's basket ID must
+		// already exist — a genuine error otherwise, unlike the early
+		// lookup above.
+		basketID, ok := getSessionString(cookie, keys.SessionBasketID)
+		if !ok {
+			serverError(h.Logger, w, r, errors.New("the basket creation process encountered an error"))
+			return
+		}
+
+		basket, err := h.BasketService.FindByID(r.Context(), basketID)
+		if err != nil {
+			serverError(h.Logger, w, r, err)
+			return
+		}
+
+		cookie.Values[keys.SessionBasketItems] = sumQuantities(basket.Items)
+		if err := cookie.Save(r, w); err != nil {
+			serverError(h.Logger, w, r, err)
 			return
 		}
 

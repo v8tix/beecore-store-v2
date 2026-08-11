@@ -36,10 +36,10 @@ const productPageSize = 10
 // searchAddItem ("/search/add" in the source repo's routes.go) is NOT
 // ported here: despite living in the same source file, its actual work —
 // BasketAddItem/FindBasket/CreateBasket — is squarely a Basket-slice
-// concern, not a Product one, and resource/service.Basket don't exist yet
-// (plan Task 13/14). It's picked up once the Basket slice lands, the same
-// deferral AuthHandler.Login and UserHandler.UpdateWizard already document
-// for their own basket-dependent steps.
+// concern, not a Product one. It's ported as BasketHandler.SearchAddItem
+// instead (plan Task 13/14 — see that type's doc comment), matching how
+// the source repo's routes.go groups its route alongside the other
+// "/basket" routes rather than the "/search" ones.
 //
 // Unlike AddressHandler/UserHandler, ProductHandler never needs the
 // Redis-backed resource.SessionStore: neither findProducts nor

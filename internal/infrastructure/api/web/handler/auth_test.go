@@ -24,9 +24,9 @@ func discardLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-func newAuthHandler(authService *mocks.Auth) *handler.AuthHandler {
+func newAuthHandler(authService *mocks.Auth, basketService *mocks.Basket) *handler.AuthHandler {
 	store := sessions.NewCookieStore([]byte("test-secret-key-at-least-32-bytes"))
-	return handler.NewAuthHandler(authService, store, discardLogger())
+	return handler.NewAuthHandler(authService, basketService, store, discardLogger())
 }
 
 func postForm(target string, form url.Values) *http.Request {
@@ -47,7 +47,7 @@ func withURLParam(r *http.Request, key, value string) *http.Request {
 
 func TestAuthHandler_Signup(t *testing.T) {
 	t.Run("GET renders the form", func(t *testing.T) {
-		h := newAuthHandler(mocks.NewAuth(t))
+		h := newAuthHandler(mocks.NewAuth(t), mocks.NewBasket(t))
 
 		w := httptest.NewRecorder()
 		h.Signup(w, httptest.NewRequest(http.MethodGet, "/signup", nil))
@@ -58,7 +58,7 @@ func TestAuthHandler_Signup(t *testing.T) {
 	})
 
 	t.Run("POST validation error renders 422", func(t *testing.T) {
-		h := newAuthHandler(mocks.NewAuth(t))
+		h := newAuthHandler(mocks.NewAuth(t), mocks.NewBasket(t))
 
 		form := url.Values{"FirstName": {""}, "LastName": {""}, "Email": {""}, "Password": {""}, "ConfirmPassword": {""}}
 		w := httptest.NewRecorder()
@@ -73,7 +73,7 @@ func TestAuthHandler_Signup(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		authService.On("Signup", mock.Anything, "Jane", "Doe", "jane@b.com", "goodpassword", "goodpassword").
 			Return("new-user-id", nil)
-		h := newAuthHandler(authService)
+		h := newAuthHandler(authService, mocks.NewBasket(t))
 
 		form := url.Values{
 			"FirstName": {"Jane"}, "LastName": {"Doe"}, "Email": {"jane@b.com"},
@@ -94,7 +94,7 @@ func TestAuthHandler_Signup(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		authService.On("Signup", mock.Anything, "Jane", "Doe", "jane@b.com", "goodpassword", "goodpassword").
 			Return("", domain.ErrEmailInUse)
-		h := newAuthHandler(authService)
+		h := newAuthHandler(authService, mocks.NewBasket(t))
 
 		form := url.Values{
 			"FirstName": {"Jane"}, "LastName": {"Doe"}, "Email": {"jane@b.com"},
@@ -111,7 +111,7 @@ func TestAuthHandler_Signup(t *testing.T) {
 
 func TestAuthHandler_Login(t *testing.T) {
 	t.Run("POST validation error renders 422", func(t *testing.T) {
-		h := newAuthHandler(mocks.NewAuth(t))
+		h := newAuthHandler(mocks.NewAuth(t), mocks.NewBasket(t))
 
 		w := httptest.NewRecorder()
 		h.Login(w, postForm("/login", url.Values{"Email": {""}, "Password": {""}}))
@@ -126,7 +126,15 @@ func TestAuthHandler_Login(t *testing.T) {
 		sess := domain.Session{UserID: "u1", UserDNI: "12345", UserShippingAddress: "addr-1"}
 		authService.On("Login", mock.Anything, "a@b.com", "pw").
 			Return("session-id-1", sess, domain.User{ID: "u1"}, nil)
-		h := newAuthHandler(authService)
+
+		basketService := mocks.NewBasket(t)
+		basketService.On("FindByUserID", mock.Anything, "u1").Return("basket-1", nil)
+		basketService.On("FindByID", mock.Anything, "basket-1").Return(domain.Basket{
+			ID:    "basket-1",
+			Items: []domain.BasketItem{{Product: domain.BasketProduct{Quantity: 2}}},
+		}, nil)
+
+		h := newAuthHandler(authService, basketService)
 
 		w := httptest.NewRecorder()
 		h.Login(w, postForm("/login", url.Values{"Email": {"a@b.com"}, "Password": {"pw"}}))
@@ -142,12 +150,21 @@ func TestAuthHandler_Login(t *testing.T) {
 		}
 	})
 
+	// TestAuthHandler_Login/POST_success_redirects_to_search_-_basket_lookup_failure_is_swallowed
+	// proves the source handler's early FindBasketByUserID error-swallow
+	// behavior is preserved: a failed lookup doesn't block the redirect to
+	// /user/update (the DNI-missing branch here never reaches the late,
+	// non-swallowed FindByID step at all).
 	t.Run("POST success redirects to user update when DNI missing", func(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		sess := domain.Session{UserID: "u1"}
 		authService.On("Login", mock.Anything, "a@b.com", "pw").
 			Return("session-id-1", sess, domain.User{ID: "u1"}, nil)
-		h := newAuthHandler(authService)
+
+		basketService := mocks.NewBasket(t)
+		basketService.On("FindByUserID", mock.Anything, "u1").Return("", errors.New("no basket yet"))
+
+		h := newAuthHandler(authService, basketService)
 
 		w := httptest.NewRecorder()
 		h.Login(w, postForm("/login", url.Values{"Email": {"a@b.com"}, "Password": {"pw"}}))
@@ -162,7 +179,11 @@ func TestAuthHandler_Login(t *testing.T) {
 		sess := domain.Session{UserID: "u1", UserDNI: "12345"}
 		authService.On("Login", mock.Anything, "a@b.com", "pw").
 			Return("session-id-1", sess, domain.User{ID: "u1"}, nil)
-		h := newAuthHandler(authService)
+
+		basketService := mocks.NewBasket(t)
+		basketService.On("FindByUserID", mock.Anything, "u1").Return("basket-1", nil)
+
+		h := newAuthHandler(authService, basketService)
 
 		w := httptest.NewRecorder()
 		h.Login(w, postForm("/login", url.Values{"Email": {"a@b.com"}, "Password": {"pw"}}))
@@ -172,11 +193,35 @@ func TestAuthHandler_Login(t *testing.T) {
 		}
 	})
 
+	// TestAuthHandler_Login/POST_success_-_missing_basket_ID_at_search_redirect_is_a_500
+	// proves the source handler's late basket-ID check (unlike the early
+	// lookup above, not swallowed) is preserved: a fully onboarded user
+	// whose basket lookup never populated the cookie hits a genuine error
+	// instead of silently reaching /search with a stale item count.
+	t.Run("POST success missing basket ID at search redirect is a 500", func(t *testing.T) {
+		authService := mocks.NewAuth(t)
+		sess := domain.Session{UserID: "u1", UserDNI: "12345", UserShippingAddress: "addr-1"}
+		authService.On("Login", mock.Anything, "a@b.com", "pw").
+			Return("session-id-1", sess, domain.User{ID: "u1"}, nil)
+
+		basketService := mocks.NewBasket(t)
+		basketService.On("FindByUserID", mock.Anything, "u1").Return("", errors.New("no basket yet"))
+
+		h := newAuthHandler(authService, basketService)
+
+		w := httptest.NewRecorder()
+		h.Login(w, postForm("/login", url.Values{"Email": {"a@b.com"}, "Password": {"pw"}}))
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("got status %d, want %d", w.Code, http.StatusInternalServerError)
+		}
+	})
+
 	t.Run("POST invalid credentials renders 422", func(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		authService.On("Login", mock.Anything, "a@b.com", "wrong").
 			Return("", domain.Session{}, domain.User{}, domain.ErrInvalidCredentials)
-		h := newAuthHandler(authService)
+		h := newAuthHandler(authService, mocks.NewBasket(t))
 
 		w := httptest.NewRecorder()
 		h.Login(w, postForm("/login", url.Values{"Email": {"a@b.com"}, "Password": {"wrong"}}))
@@ -190,7 +235,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		authService.On("Login", mock.Anything, "a@b.com", "pw").
 			Return("", domain.Session{}, domain.User{}, errors.New("boom"))
-		h := newAuthHandler(authService)
+		h := newAuthHandler(authService, mocks.NewBasket(t))
 
 		w := httptest.NewRecorder()
 		h.Login(w, postForm("/login", url.Values{"Email": {"a@b.com"}, "Password": {"pw"}}))
@@ -203,7 +248,7 @@ func TestAuthHandler_Login(t *testing.T) {
 
 func TestAuthHandler_Activate(t *testing.T) {
 	t.Run("missing user_id is a 500", func(t *testing.T) {
-		h := newAuthHandler(mocks.NewAuth(t))
+		h := newAuthHandler(mocks.NewAuth(t), mocks.NewBasket(t))
 
 		w := httptest.NewRecorder()
 		h.Activate(w, withURLParam(httptest.NewRequest(http.MethodGet, "/activate/", nil), "user_id", ""))
@@ -216,7 +261,7 @@ func TestAuthHandler_Activate(t *testing.T) {
 	t.Run("POST success redirects", func(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		authService.On("Activate", mock.Anything, "u1", "good-code").Return(nil)
-		h := newAuthHandler(authService)
+		h := newAuthHandler(authService, mocks.NewBasket(t))
 
 		r := withURLParam(postForm("/activate/u1", url.Values{"ActivationCode": {"good-code"}}), "user_id", "u1")
 		w := httptest.NewRecorder()
@@ -233,7 +278,7 @@ func TestAuthHandler_Activate(t *testing.T) {
 	t.Run("POST invalid token renders 422", func(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		authService.On("Activate", mock.Anything, "u1", "bad-code").Return(domain.ErrInvalidActivationToken)
-		h := newAuthHandler(authService)
+		h := newAuthHandler(authService, mocks.NewBasket(t))
 
 		r := withURLParam(postForm("/activate/u1", url.Values{"ActivationCode": {"bad-code"}}), "user_id", "u1")
 		w := httptest.NewRecorder()
@@ -249,7 +294,7 @@ func TestAuthHandler_ForgottenPassword(t *testing.T) {
 	t.Run("POST success redirects to confirmation", func(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		authService.On("ForgotPassword", mock.Anything, "a@b.com").Return(nil)
-		h := newAuthHandler(authService)
+		h := newAuthHandler(authService, mocks.NewBasket(t))
 
 		w := httptest.NewRecorder()
 		h.ForgottenPassword(w, postForm("/password/forgot", url.Values{"Email": {"a@b.com"}}))
@@ -265,7 +310,7 @@ func TestAuthHandler_ForgottenPassword(t *testing.T) {
 	t.Run("POST unmatched email renders 422", func(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		authService.On("ForgotPassword", mock.Anything, "missing@b.com").Return(domain.ErrUserNotFound)
-		h := newAuthHandler(authService)
+		h := newAuthHandler(authService, mocks.NewBasket(t))
 
 		w := httptest.NewRecorder()
 		h.ForgottenPassword(w, postForm("/password/forgot", url.Values{"Email": {"missing@b.com"}}))
@@ -280,7 +325,7 @@ func TestAuthHandler_PasswordReset(t *testing.T) {
 	t.Run("POST success renders confirmation page", func(t *testing.T) {
 		authService := mocks.NewAuth(t)
 		authService.On("ResetPassword", mock.Anything, "u1", "goodpassword", "goodpassword").Return(nil)
-		h := newAuthHandler(authService)
+		h := newAuthHandler(authService, mocks.NewBasket(t))
 
 		r := withURLParam(postForm("/password/reset/u1", url.Values{
 			"Password": {"goodpassword"}, "ConfirmPassword": {"goodpassword"},
@@ -294,7 +339,7 @@ func TestAuthHandler_PasswordReset(t *testing.T) {
 	})
 
 	t.Run("POST missing user_id is a 500", func(t *testing.T) {
-		h := newAuthHandler(mocks.NewAuth(t))
+		h := newAuthHandler(mocks.NewAuth(t), mocks.NewBasket(t))
 
 		r := withURLParam(postForm("/password/reset/", url.Values{
 			"Password": {"goodpassword"}, "ConfirmPassword": {"goodpassword"},

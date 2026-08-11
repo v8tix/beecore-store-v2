@@ -33,8 +33,8 @@ func newTestCookieStore() *sessions.CookieStore {
 	return sessions.NewCookieStore([]byte("test-secret-key-at-least-32-bytes"))
 }
 
-func newUserHandler(userService *servicemocks.User, sessionStore *mocks.SessionStore, store *sessions.CookieStore) *UserHandler {
-	return NewUserHandler(userService, sessionStore, store, 7*24*time.Hour, discardTestLogger())
+func newUserHandler(userService *servicemocks.User, basketService *servicemocks.Basket, sessionStore *mocks.SessionStore, store *sessions.CookieStore) *UserHandler {
+	return NewUserHandler(userService, basketService, sessionStore, store, 7*24*time.Hour, discardTestLogger())
 }
 
 // sessionCookieRequest builds a request carrying a valid signed session
@@ -72,7 +72,7 @@ func postFormRequest(t *testing.T, store *sessions.CookieStore, target string, f
 
 func TestUserHandler_UpdateWizard_NoSession(t *testing.T) {
 	store := newTestCookieStore()
-	h := newUserHandler(servicemocks.NewUser(t), mocks.NewSessionStore(t), store)
+	h := newUserHandler(servicemocks.NewUser(t), servicemocks.NewBasket(t), mocks.NewSessionStore(t), store)
 
 	w := httptest.NewRecorder()
 	h.UpdateWizard(w, httptest.NewRequest(http.MethodGet, "/user/update", nil))
@@ -94,7 +94,7 @@ func TestUserHandler_UpdateWizard_GET(t *testing.T) {
 		sessionStore := mocks.NewSessionStore(t)
 		sessionStore.On("Load", mock.Anything, "sess-1").Return(domain.Session{UserID: "u1"}, nil)
 
-		h := newUserHandler(servicemocks.NewUser(t), sessionStore, store)
+		h := newUserHandler(servicemocks.NewUser(t), servicemocks.NewBasket(t), sessionStore, store)
 
 		r := sessionCookieRequest(t, store, http.MethodGet, "/user/update", nil, "sess-1")
 		w := httptest.NewRecorder()
@@ -112,7 +112,7 @@ func TestUserHandler_UpdateWizard_POST(t *testing.T) {
 		sessionStore := mocks.NewSessionStore(t)
 		sessionStore.On("Load", mock.Anything, "sess-1").Return(domain.Session{UserID: "u1"}, nil)
 
-		h := newUserHandler(servicemocks.NewUser(t), sessionStore, store)
+		h := newUserHandler(servicemocks.NewUser(t), servicemocks.NewBasket(t), sessionStore, store)
 
 		r := postFormRequest(t, store, "/user/update", url.Values{"IN": {""}, "PhoneNumber": {""}, "Birthday": {""}}, "sess-1")
 		w := httptest.NewRecorder()
@@ -128,7 +128,7 @@ func TestUserHandler_UpdateWizard_POST(t *testing.T) {
 		sessionStore := mocks.NewSessionStore(t)
 		sessionStore.On("Load", mock.Anything, "sess-1").Return(domain.Session{UserID: "u1"}, nil)
 
-		h := newUserHandler(servicemocks.NewUser(t), sessionStore, store)
+		h := newUserHandler(servicemocks.NewUser(t), servicemocks.NewBasket(t), sessionStore, store)
 
 		form := url.Values{"IN": {"0102030405"}, "PhoneNumber": {"999999999"}, "Birthday": {"1990-01-01"}}
 		r := postFormRequest(t, store, "/user/update", form, "sess-1")
@@ -152,7 +152,10 @@ func TestUserHandler_UpdateWizard_POST(t *testing.T) {
 		userService.On("UpdateProfile", mock.Anything, "u1", "Jane", "Doe", "0102030405", "1990-01-01", "999999999").
 			Return(nil)
 
-		h := newUserHandler(userService, sessionStore, store)
+		basketService := servicemocks.NewBasket(t)
+		basketService.On("Create", mock.Anything, "u1").Return("basket-1", nil)
+
+		h := newUserHandler(userService, basketService, sessionStore, store)
 
 		form := url.Values{"IN": {"0102030405"}, "PhoneNumber": {"999999999"}, "Birthday": {"1990-01-01"}}
 		r := postFormRequest(t, store, "/user/update", form, "sess-1")
@@ -165,6 +168,41 @@ func TestUserHandler_UpdateWizard_POST(t *testing.T) {
 		}
 		if got := w.Header().Get("Location"); got != "/user/create/address" {
 			t.Fatalf("got redirect %q, want %q", got, "/user/create/address")
+		}
+		if len(w.Result().Cookies()) == 0 {
+			t.Fatal("expected the basket-ID cookie to be re-saved")
+		}
+	})
+
+	// TestUserHandler_UpdateWizard_POST/basket_creation_failure_is_a_500
+	// proves the source handler's CreateBasket failure path is preserved:
+	// unlike AuthHandler.Login's early basket lookup, this failure is not
+	// swallowed.
+	t.Run("basket creation failure is a 500", func(t *testing.T) {
+		store := newTestCookieStore()
+		sessionStore := mocks.NewSessionStore(t)
+		sessionStore.On("Load", mock.Anything, "sess-1").Return(domain.Session{UserID: "u1"}, nil)
+		sessionStore.On("Save", mock.Anything, "sess-1", mock.MatchedBy(func(s domain.Session) bool {
+			return s.UserID == "u1" && s.UserDNI == "0102030405"
+		}), 7*24*time.Hour).Return(nil)
+
+		userService := servicemocks.NewUser(t)
+		userService.On("UpdateProfile", mock.Anything, "u1", "Jane", "Doe", "0102030405", "1990-01-01", "999999999").
+			Return(nil)
+
+		basketService := servicemocks.NewBasket(t)
+		basketService.On("Create", mock.Anything, "u1").Return("", errors.New("boom"))
+
+		h := newUserHandler(userService, basketService, sessionStore, store)
+
+		form := url.Values{"IN": {"0102030405"}, "PhoneNumber": {"999999999"}, "Birthday": {"1990-01-01"}}
+		r := postFormRequest(t, store, "/user/update", form, "sess-1")
+		r = contextSetAuthenticatedUser(r, &domain.User{ID: "u1", FirstName: "Jane", LastName: "Doe"})
+		w := httptest.NewRecorder()
+		h.UpdateWizard(w, r)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("got status %d, want %d", w.Code, http.StatusInternalServerError)
 		}
 	})
 
@@ -182,7 +220,10 @@ func TestUserHandler_UpdateWizard_POST(t *testing.T) {
 		userService.On("UpdateProfile", mock.Anything, "u1", "Jane", "Doe", "0102030405", "1990-01-01", "999999999").
 			Return(domain.ErrUserNotFound)
 
-		h := newUserHandler(userService, sessionStore, store)
+		basketService := servicemocks.NewBasket(t)
+		basketService.On("Create", mock.Anything, "u1").Return("basket-1", nil)
+
+		h := newUserHandler(userService, basketService, sessionStore, store)
 
 		form := url.Values{"IN": {"0102030405"}, "PhoneNumber": {"999999999"}, "Birthday": {"1990-01-01"}}
 		r := postFormRequest(t, store, "/user/update", form, "sess-1")
@@ -208,7 +249,7 @@ func TestUserHandler_UpdateWizard_POST(t *testing.T) {
 		userService.On("UpdateProfile", mock.Anything, "u1", "Jane", "Doe", "0102030405", "1990-01-01", "999999999").
 			Return(errors.New("boom"))
 
-		h := newUserHandler(userService, sessionStore, store)
+		h := newUserHandler(userService, servicemocks.NewBasket(t), sessionStore, store)
 
 		form := url.Values{"IN": {"0102030405"}, "PhoneNumber": {"999999999"}, "Birthday": {"1990-01-01"}}
 		r := postFormRequest(t, store, "/user/update", form, "sess-1")

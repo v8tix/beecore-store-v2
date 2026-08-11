@@ -73,10 +73,10 @@ func NewAuthService(d Dependencies) *authService {
 // The source handler also looks up the user's basket at this point
 // (FindBasketByUserID/FindBasket, to seed the cookie's basket-quantity
 // display) — that's browser-cookie state (session.Values), not part of
-// domain.Session, and depends on resource.BasketRemote, which doesn't
-// exist yet (Basket slice, plan Task 13/14). The handler layer picks that
-// step back up once that slice lands; Login here only owns what belongs
-// in the persisted session record.
+// domain.Session, so it isn't done here: infrastructure/api/web/handler's
+// AuthHandler.Login owns that step instead, via port/service.Basket (plan
+// Task 13/14; see its doc comment). Login here only owns what belongs in
+// the persisted session record.
 func (s *authService) Login(ctx context.Context, email, password string) (string, domain.Session, domain.User, error) {
 	at, err := s.deps.AuthRemote.GetAdminToken(ctx)
 	if err != nil {
