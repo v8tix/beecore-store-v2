@@ -179,41 +179,6 @@ func (_m *AuthRemote) GetAdminToken(ctx context.Context) (string, error) {
 	return r0, r1
 }
 
-// HasAddresses provides a mock function with given fields: ctx, userID, token
-func (_m *AuthRemote) HasAddresses(ctx context.Context, userID string, token string) (bool, string, error) {
-	ret := _m.Called(ctx, userID, token)
-
-	if len(ret) == 0 {
-		panic("no return value specified for HasAddresses")
-	}
-
-	var r0 bool
-	var r1 string
-	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (bool, string, error)); ok {
-		return rf(ctx, userID, token)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
-		r0 = rf(ctx, userID, token)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) string); ok {
-		r1 = rf(ctx, userID, token)
-	} else {
-		r1 = ret.Get(1).(string)
-	}
-
-	if rf, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
-		r2 = rf(ctx, userID, token)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
-}
-
 // RefreshUserToken provides a mock function with given fields: ctx, userID, refreshToken, token
 func (_m *AuthRemote) RefreshUserToken(ctx context.Context, userID string, refreshToken string, token string) (string, error) {
 	ret := _m.Called(ctx, userID, refreshToken, token)

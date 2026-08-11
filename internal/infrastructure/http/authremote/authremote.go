@@ -2,7 +2,6 @@ package authremote
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -258,45 +257,6 @@ func (c *Client) UpdateUserPassword(ctx context.Context, userID, password, confi
 	}
 
 	return nil
-}
-
-// HasAddresses mirrors BaseRepositoryImpl.HasAddresses, borrowed from
-// address_repository.go in the source repo — see AuthRemote's doc comment
-// for why. Note the source method's quirk, preserved here: any downstream
-// HTTP error whose body parses as valid JSON is treated as "no addresses,
-// no error" — not just the "addresses not found" case its message check
-// singles out (the original's reassignment of err to the (nil-on-success)
-// json.Unmarshal result discards the actual failure reason). Only a body
-// that fails to parse as JSON, or a non-HTTP error (network failure),
-// propagates as an error here.
-func (c *Client) HasAddresses(ctx context.Context, userID, token string) (bool, string, error) {
-	url := fmt.Sprintf("%s/%s/%s/%s", c.cfg.Integration.V1.AuthURL, "users", userID, "addresses")
-
-	call := kawa.NewCall[kawa.NoReq, users.GetAddressesV1EnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
-		WithHeaders(buildAuthHeader(token)).
-		WithDeadline(c.deadline()).
-		WithRetryPolicy(c.retryPolicy())
-
-	env, err := call.DoWithRetry(ctx, nil)
-	if err != nil {
-		var errHTTP kawa.ErrInvalidHTTPStatus
-		if errors.As(err, &errHTTP) {
-			var em errMessage
-			if unmarshalErr := json.Unmarshal(errHTTP.Body, &em); unmarshalErr != nil {
-				return false, "", unmarshalErr
-			}
-
-			return false, "", nil
-		}
-
-		return false, "", err
-	}
-
-	if env.Body == nil || len(env.Body.Addresses) == 0 {
-		return false, "", nil
-	}
-
-	return true, env.Body.Addresses[0].ID, nil
 }
 
 // refreshTokenV1Req mirrors the local RefreshTokenV1Req type in the

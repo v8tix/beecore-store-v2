@@ -164,42 +164,6 @@ func TestFindUserTokenByEmailAndPassword_Success(t *testing.T) {
 	}
 }
 
-func TestHasAddresses_Found(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"addresses":[{"id":"addr-1"},{"id":"addr-2"}]}`))
-	}))
-	defer ts.Close()
-
-	has, firstID, err := newTestClient(ts.URL).HasAddresses(context.Background(), "u1", "tok")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !has || firstID != "addr-1" {
-		t.Fatalf("got (%v, %q), want (true, %q)", has, firstID, "addr-1")
-	}
-}
-
-// TestHasAddresses_DownstreamErrorIsSwallowed proves the source repo's
-// HasAddresses quirk is preserved: any downstream HTTP error with a
-// JSON-parseable body — not just "addresses not found" — comes back as
-// (false, "", nil), not an error.
-func TestHasAddresses_DownstreamErrorIsSwallowed(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error":"something else entirely"}`))
-	}))
-	defer ts.Close()
-
-	has, firstID, err := newTestClient(ts.URL).HasAddresses(context.Background(), "u1", "tok")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if has || firstID != "" {
-		t.Fatalf("got (%v, %q), want (false, \"\")", has, firstID)
-	}
-}
-
 func TestUpdateUserPassword_Success(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {

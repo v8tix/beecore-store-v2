@@ -25,6 +25,12 @@ type Dependencies struct {
 	AuthRemote   resource.AuthRemote
 	SessionStore resource.SessionStore
 
+	// AddressRemote is used only for its HasAddresses method, to populate
+	// domain.Session's UserShippingAddress field during Login — relocated
+	// here from AuthRemote now that the Address vertical slice exists
+	// (plan Task 8); see resource.AddressRemote's doc comment for why.
+	AddressRemote resource.AddressRemote
+
 	// AdminEmail/AdminPassword are the admin service account's own
 	// credentials (app.Admin.Email/Password in the source repo),
 	// used by ForgotPassword/ResetPassword to mint a token via
@@ -92,7 +98,7 @@ func (s *authService) Login(ctx context.Context, email, password string) (string
 		return "", domain.Session{}, domain.User{}, errors.New("login succeeded but no user ID was returned")
 	}
 
-	hasAddresses, firstAddressID, err := s.deps.AuthRemote.HasAddresses(ctx, user.ID, at)
+	hasAddresses, firstAddressID, err := s.deps.AddressRemote.HasAddresses(ctx, user.ID, at)
 	if err != nil {
 		return "", domain.Session{}, domain.User{}, err
 	}

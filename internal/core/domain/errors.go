@@ -38,4 +38,19 @@ var (
 	// invalidate the session outright, without needing to know kawa
 	// exists.
 	ErrSessionRejected = errors.New("session refresh rejected")
+
+	// ErrBadAddressType mirrors repository.ErrBadAddressType in the source
+	// repo's internal/business/core/repository/address_repository.go —
+	// returned when a caller passes an AddressType that isn't one of the
+	// domain.AddressType constants. Checked locally by
+	// infrastructure/http/addressremote before any downstream call is
+	// made, mirroring repository.CheckAddressType.
+	ErrBadAddressType = errors.New("couldn't find address type")
+
+	// ErrMaxAddressesReached mirrors the downstream user service's
+	// "maximum address length reached" response from InsertAddress — see
+	// cmd/web/address_handler.go's newAddress handler in the source repo,
+	// which special-cases this exact message to flag the form's
+	// web.MaxAddresses field instead of rendering a generic error page.
+	ErrMaxAddressesReached = errors.New("maximum address length reached")
 )

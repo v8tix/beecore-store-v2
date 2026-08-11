@@ -20,16 +20,15 @@ import (
 // domain.Err* sentinels (or a generic wrapped error) is this adapter's
 // job, so core/auth and the handler never need to know kawa exists.
 //
-// HasAddresses is the one exception to the "auth_repository.go/
-// user_repository.go only" scope: it's defined in address_repository.go in
-// the source repo, but the login handler calls it to populate
-// domain.Session's UserShippingAddress field (which decides the
-// post-login redirect), and the Address vertical slice doesn't exist yet
-// in this repo (Task 8 in the plan). Duplicating it here for now preserves
-// login's behavior 1:1; when the Address slice lands, consider whether
-// AuthRemote should keep its own copy or Login should take an
-// AddressRemote dependency instead — same relocation beecore-admin-v2 did
-// for its borrowed HasAddresses/FindStoreByUserID methods.
+// HasAddresses used to be a documented placeholder here, borrowed from
+// address_repository.go in the source repo because the login handler
+// needs it to populate domain.Session's UserShippingAddress field and the
+// Address vertical slice didn't exist yet (plan Task 8). Now that it
+// does, HasAddresses lives on resource.AddressRemote, its true owner —
+// see that file's doc comment — and core/auth.Dependencies holds an
+// AddressRemote field instead of relying on AuthRemote for this, same
+// relocation discipline beecore-admin-v2 used for its own borrowed
+// HasAddresses/FindStoreByUserID methods.
 //
 // FindTokenByEmailAndPassword and RefreshUserToken both decode the
 // downstream POST auth/token and POST auth/refresh responses into the
@@ -95,15 +94,6 @@ type AuthRemote interface {
 	// UpdateUserPassword sets a new password for userID. Mirrors
 	// BaseRepositoryImpl.UpdateUserPassword.
 	UpdateUserPassword(ctx context.Context, userID, password, confirmPassword, token string) error
-
-	// HasAddresses reports whether userID has at least one registered
-	// address, and its first address's ID if so (Login only needs the
-	// first one, matching addresses[0].ID in the source handler). Mirrors
-	// BaseRepositoryImpl.HasAddresses — see the type-level doc comment
-	// above for why this lives on AuthRemote rather than an
-	// AddressRemote, including the preserved quirk of swallowing any
-	// downstream error whose body parses as valid JSON.
-	HasAddresses(ctx context.Context, userID, token string) (hasAddresses bool, firstAddressID string, err error)
 
 	// RefreshUserToken exchanges a session's refresh token for a new
 	// access token via POST auth/refresh, without the user's password —
