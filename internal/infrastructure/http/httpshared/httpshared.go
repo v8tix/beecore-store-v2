@@ -3,14 +3,8 @@
 // (authremote, userremote, addressremote, productremote, basketremote,
 // orderremote, payphoneremote). Each adapter package used to carry its own
 // verbatim copy of deadline/retryPolicy/buildAuthHeader (and, for the ones
-// that need it, decodeHTTPError) — this package is where that common
-// plumbing lives instead.
-//
-// translateHTTPError is deliberately NOT extracted here yet: authremote's,
-// addressremote's and basketremote's local copies have genuinely diverged
-// (addressremote's/basketremote's version drops the status code on a
-// JSON-parse failure of the response body) — reconciling that is its own
-// follow-up change, not a mechanical dedup.
+// that need it, decodeHTTPError/translateHTTPError) — this package is
+// where that common plumbing lives instead.
 package httpshared
 
 import (
@@ -58,6 +52,35 @@ func DecodeHTTPError(err error) (statusCode int, message string, parseErr error,
 	}
 
 	return errHTTP.StatusCode, em.Error, nil, true
+}
+
+// TranslateHTTPError turns a kawa.ErrInvalidHTTPStatus into a plain error
+// carrying the downstream status code plus a description of the response
+// body, for call sites that don't need to distinguish specific downstream
+// rejection reasons. The status code is always preserved, even when the
+// body isn't valid ErrMessage JSON — in that case the raw body is used as
+// the description instead of the (would-be) parsed message. Non-HTTP
+// errors (network failures) pass through unchanged.
+//
+// This is the single reconciled behavior for what used to be 3 diverged
+// per-adapter copies: authremote's always wrapped the raw body (which this
+// keeps as the parse-failure fallback); addressremote's and basketremote's
+// extracted only the parsed message and, on a parse failure, returned the
+// bare json.Unmarshal error — silently discarding the status code and body.
+// That silent loss is judged a real, debugging-hostile bug, not a
+// behavior worth preserving, so it isn't reproduced here.
+func TranslateHTTPError(err error) error {
+	var errHTTP kawa.ErrInvalidHTTPStatus
+	if !errors.As(err, &errHTTP) {
+		return err
+	}
+
+	var em ErrMessage
+	if unmarshalErr := json.Unmarshal(errHTTP.Body, &em); unmarshalErr == nil {
+		return fmt.Errorf("downstream request failed with status %d: %s", errHTTP.StatusCode, em.Error)
+	}
+
+	return fmt.Errorf("downstream request failed with status %d: %s", errHTTP.StatusCode, string(errHTTP.Body))
 }
 
 // Deadline returns cfg's "fast" HTTP client profile timeout. Every adapter

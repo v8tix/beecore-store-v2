@@ -49,7 +49,7 @@ func (c *Client) FindTokenByEmailAndPassword(ctx context.Context, email, passwor
 
 	env, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		return "", translateHTTPError(err)
+		return "", httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -80,7 +80,7 @@ func (c *Client) FindUserByID(ctx context.Context, id, token string) (domain.Use
 			return domain.User{}, domain.ErrUserNotFound
 		}
 
-		return domain.User{}, translateHTTPError(err)
+		return domain.User{}, httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -112,7 +112,7 @@ func (c *Client) FindUserByEmail(ctx context.Context, email, token string) (doma
 			return domain.User{}, domain.ErrUserNotFound
 		}
 
-		return domain.User{}, translateHTTPError(err)
+		return domain.User{}, httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -181,7 +181,7 @@ func (c *Client) FindUserTokenByEmailAndPassword(ctx context.Context, email, pas
 
 	env, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		return "", "", translateHTTPError(err)
+		return "", "", httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -211,7 +211,7 @@ func (c *Client) RegisterUser(ctx context.Context, firstName, lastName, email, p
 
 	env, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		return "", translateHTTPError(err)
+		return "", httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -234,7 +234,7 @@ func (c *Client) SendResetPasswdEmail(ctx context.Context, email, token string) 
 
 	_, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		return translateHTTPError(err)
+		return httpshared.TranslateHTTPError(err)
 	}
 
 	return nil
@@ -285,7 +285,7 @@ func (c *Client) UpdateUserPassword(ctx context.Context, userID, password, confi
 
 	_, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		return translateHTTPError(err)
+		return httpshared.TranslateHTTPError(err)
 	}
 
 	return nil
@@ -328,7 +328,7 @@ func (c *Client) RefreshUserToken(ctx context.Context, userID, refreshToken, tok
 			return "", domain.ErrSessionRejected
 		}
 
-		return "", translateHTTPError(err)
+		return "", httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {

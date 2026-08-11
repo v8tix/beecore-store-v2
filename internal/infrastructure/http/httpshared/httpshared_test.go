@@ -82,6 +82,54 @@ func TestDecodeHTTPError_UnparseableBody(t *testing.T) {
 	}
 }
 
+// TestTranslateHTTPError_ValidJSONBody proves the reconciled behavior uses
+// the parsed error message (not the raw body) when the response body is
+// valid ErrMessage JSON.
+func TestTranslateHTTPError_ValidJSONBody(t *testing.T) {
+	err := kawa.ErrInvalidHTTPStatus{
+		StatusCode: 400,
+		Status:     "400 Bad Request",
+		Body:       []byte(`{"error":"bad input"}`),
+	}
+
+	got := httpshared.TranslateHTTPError(err)
+
+	want := "downstream request failed with status 400: bad input"
+	if got == nil || got.Error() != want {
+		t.Fatalf("got %v, want %q", got, want)
+	}
+}
+
+// TestTranslateHTTPError_UnparseableBody proves the reconciled behavior:
+// the status code is always preserved, even when the response body isn't
+// valid ErrMessage JSON — falling back to the raw body instead of silently
+// discarding the status code and body (the divergent, debugging-hostile
+// behavior addressremote's and basketremote's prior translateHTTPError had).
+func TestTranslateHTTPError_UnparseableBody(t *testing.T) {
+	err := kawa.ErrInvalidHTTPStatus{
+		StatusCode: 500,
+		Status:     "500 Internal Server Error",
+		Body:       []byte("not json"),
+	}
+
+	got := httpshared.TranslateHTTPError(err)
+
+	want := "downstream request failed with status 500: not json"
+	if got == nil || got.Error() != want {
+		t.Fatalf("got %v, want %q", got, want)
+	}
+}
+
+func TestTranslateHTTPError_NonHTTPError(t *testing.T) {
+	networkErr := errors.New("network failure")
+
+	got := httpshared.TranslateHTTPError(networkErr)
+
+	if !errors.Is(got, networkErr) {
+		t.Fatalf("got %v, want the original error unchanged", got)
+	}
+}
+
 func TestDeadline_DefaultsWhenUnset(t *testing.T) {
 	got := httpshared.Deadline(&config.Cfg{})
 

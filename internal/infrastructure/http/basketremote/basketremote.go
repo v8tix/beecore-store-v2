@@ -24,7 +24,7 @@ func (c *Client) CreateBasket(ctx context.Context, userID, token string) (string
 
 	env, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		return "", translateHTTPError(err)
+		return "", httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -45,7 +45,7 @@ func (c *Client) FindBasket(ctx context.Context, id, token string) (domain.Baske
 
 	env, err := call.DoWithRetry(ctx, nil)
 	if err != nil {
-		return domain.Basket{}, translateHTTPError(err)
+		return domain.Basket{}, httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -74,7 +74,7 @@ func (c *Client) BasketAddItem(ctx context.Context, id, productID string, quanti
 			return domain.ErrBasketCheckedOut
 		}
 
-		return translateHTTPError(err)
+		return httpshared.TranslateHTTPError(err)
 	}
 
 	return nil
@@ -93,7 +93,7 @@ func (c *Client) BasketRemoveItem(ctx context.Context, id, productID string, qua
 
 	_, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		return translateHTTPError(err)
+		return httpshared.TranslateHTTPError(err)
 	}
 
 	return nil
@@ -112,7 +112,7 @@ func (c *Client) CheckoutBasket(ctx context.Context, id, paymentID, shippingAddr
 
 	_, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		return translateHTTPError(err)
+		return httpshared.TranslateHTTPError(err)
 	}
 
 	return nil
@@ -130,7 +130,7 @@ func (c *Client) CancelBasket(ctx context.Context, id, token string) error {
 
 	_, err := call.DoWithRetry(ctx, nil)
 	if err != nil {
-		return translateHTTPError(err)
+		return httpshared.TranslateHTTPError(err)
 	}
 
 	return nil
@@ -148,7 +148,7 @@ func (c *Client) FindBasketByUserID(ctx context.Context, userID, token string) (
 
 	env, err := call.DoWithRetry(ctx, nil)
 	if err != nil {
-		return "", translateHTTPError(err)
+		return "", httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -170,7 +170,7 @@ func (c *Client) ComputeFinancials(ctx context.Context, id, token string) (domai
 
 	env, err := call.DoWithRetry(ctx, nil)
 	if err != nil {
-		return domain.Financials{}, translateHTTPError(err)
+		return domain.Financials{}, httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {

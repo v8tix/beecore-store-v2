@@ -22,7 +22,7 @@ func (c *Client) FindAddressesByUserID(ctx context.Context, userID, token string
 
 	env, err := call.DoWithRetry(ctx, nil)
 	if err != nil {
-		return nil, translateHTTPError(err)
+		return nil, httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -129,7 +129,7 @@ func (c *Client) InsertAddress(
 			return "", domain.ErrMaxAddressesReached
 		}
 
-		return "", translateHTTPError(err)
+		return "", httpshared.TranslateHTTPError(err)
 	}
 
 	if env.Body == nil {
@@ -174,7 +174,7 @@ func (c *Client) UpdateAddress(
 
 	_, err := call.DoWithRetry(ctx, &req)
 	if err != nil {
-		return translateHTTPError(err)
+		return httpshared.TranslateHTTPError(err)
 	}
 
 	return nil

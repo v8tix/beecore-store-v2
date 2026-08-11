@@ -7,8 +7,6 @@
 package authremote
 
 import (
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/v8tix/beecore-eda/config"
@@ -43,25 +41,6 @@ func (c *Client) deadline() time.Duration {
 
 func (c *Client) retryPolicy() kawa.RetryPolicy {
 	return httpshared.RetryPolicy(c.cfg)
-}
-
-// translateHTTPError turns a kawa.ErrInvalidHTTPStatus into a plain error
-// carrying the downstream response body as its message, for call sites
-// that don't need to distinguish specific downstream rejection reasons.
-// Non-HTTP errors (network failures) pass through unchanged.
-//
-// TODO(httpshared): still duplicated per-adapter — addressremote's and
-// basketremote's versions diverge (they extract only the parsed message
-// and drop the status code on a JSON-parse failure); unifying that is
-// deferred to its own follow-up commit rather than folded into this
-// dedup pass.
-func translateHTTPError(err error) error {
-	var errHTTP kawa.ErrInvalidHTTPStatus
-	if errors.As(err, &errHTTP) {
-		return fmt.Errorf("downstream request failed with status %d: %s", errHTTP.StatusCode, string(errHTTP.Body))
-	}
-
-	return err
 }
 
 func safeString(s *string) string {
