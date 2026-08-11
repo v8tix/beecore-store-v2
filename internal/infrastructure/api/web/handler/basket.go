@@ -142,10 +142,10 @@ func (h *BasketHandler) Basket(w http.ResponseWriter, r *http.Request) {
 
 	var form struct {
 		FinancialItems []domain.FinancialLineItem `form:"FinancialItems"`
-		IsMobile       bool                        `form:"IsMobile"`
-		BasketItems    int                         `form:"BasketItems"`
-		GrandTotal     float64                     `form:"GrandTotal"`
-		Validator      validator.Validator         `form:"-"`
+		IsMobile       bool                       `form:"IsMobile"`
+		BasketItems    int                        `form:"BasketItems"`
+		GrandTotal     float64                    `form:"GrandTotal"`
+		Validator      validator.Validator        `form:"-"`
 	}
 
 	if strings.Contains(r.Header.Get("User-Agent"), "Mobile") {
