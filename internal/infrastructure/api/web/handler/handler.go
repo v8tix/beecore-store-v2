@@ -1,0 +1,75 @@
+// Package handler holds chi handlers, one type per vertical slice, each
+// calling its slice's core/port/service interface only — never kawa, never
+// a repository, never another service's internals directly. This file
+// holds the pieces every handler in the package needs: template-data
+// assembly, the authenticated-user request context key, and the
+// serverError/badRequest helpers, all ported from cmd/web/{context,
+// helpers,errors}.go in the source repo.
+package handler
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"net/http"
+
+	"github.com/justinas/nosurf"
+
+	"github.com/v8tix/beecore-store-v2/internal/core/domain"
+	"github.com/v8tix/beecore-store-v2/internal/version"
+)
+
+type contextKey string
+
+const authenticatedUserContextKey = contextKey("authenticatedUser")
+
+// contextSetAuthenticatedUser mirrors contextSetAuthenticatedUser in the
+// source repo's cmd/web/context.go, holding a domain.User instead of the
+// downstream users.User wire type.
+func contextSetAuthenticatedUser(r *http.Request, user *domain.User) *http.Request {
+	c := context.WithValue(r.Context(), authenticatedUserContextKey, user)
+	return r.WithContext(c)
+}
+
+func contextGetAuthenticatedUser(r *http.Request) *domain.User {
+	user, ok := r.Context().Value(authenticatedUserContextKey).(*domain.User)
+	if !ok {
+		return nil
+	}
+
+	return user
+}
+
+// newTemplateData mirrors application.newTemplateData in the source
+// repo's cmd/web/helpers.go.
+func newTemplateData(r *http.Request) map[string]any {
+	return map[string]any{
+		"AuthenticatedUser": contextGetAuthenticatedUser(r),
+		"CSRFToken":         nosurf.Token(r),
+		"Version":           version.Get(),
+	}
+}
+
+// logError, serverError and badRequest mirror their same-named methods on
+// application in the source repo's cmd/web/errors.go. Unlike the source's
+// serverErrorFromHTTP, there is no kawa-aware variant here — every error
+// a handler in this package can see is either a domain.Err* sentinel
+// (handled explicitly by the caller before falling through to
+// serverError) or an already-translated plain error from a
+// port/service.Auth method, never a kawa.ErrInvalidHTTPStatus.
+func logError(logger *slog.Logger, r *http.Request, err error) {
+	logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+}
+
+func serverError(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error) {
+	logError(logger, r, err)
+
+	message := "The server encountered a problem and could not process your request"
+	http.Error(w, fmt.Sprintf("%s: %s", message, err.Error()), http.StatusInternalServerError)
+}
+
+func badRequest(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error) {
+	logError(logger, r, err)
+
+	http.Error(w, err.Error(), http.StatusBadRequest)
+}

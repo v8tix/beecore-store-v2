@@ -12,7 +12,10 @@ replace github.com/v8tix/beecore-http v0.1.0 => ../beecore-http
 
 require (
 	github.com/fatih/color v1.19.0
+	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-playground/form/v4 v4.3.0
+	github.com/gorilla/sessions v1.4.0
+	github.com/justinas/nosurf v1.2.0
 	github.com/stretchr/testify v1.11.1
 	github.com/v8tix/beecore-eda v1.2.0
 	github.com/v8tix/beecore-http v0.1.0
@@ -53,7 +56,6 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.19 // indirect
 	github.com/googleapis/gax-go/v2 v2.23.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
-	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

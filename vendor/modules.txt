@@ -148,6 +148,9 @@ github.com/fatih/color
 # github.com/felixge/httpsnoop v1.1.0
 ## explicit; go 1.25
 github.com/felixge/httpsnoop
+# github.com/go-chi/chi/v5 v5.3.1
+## explicit; go 1.23
+github.com/go-chi/chi/v5
 # github.com/go-jose/go-jose/v4 v4.1.4
 ## explicit; go 1.24.0
 github.com/go-jose/go-jose/v4
@@ -242,6 +245,9 @@ github.com/jackc/pgx/v5/pgxpool
 ## explicit; go 1.19
 github.com/jackc/puddle/v2
 github.com/jackc/puddle/v2/internal/genstack
+# github.com/justinas/nosurf v1.2.0
+## explicit; go 1.12
+github.com/justinas/nosurf
 # github.com/klauspost/compress v1.19.1
 ## explicit; go 1.24
 github.com/klauspost/compress/flate
