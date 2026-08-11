@@ -13,7 +13,10 @@ replace github.com/v8tix/beecore-http v0.1.0 => ../beecore-http
 require (
 	github.com/fatih/color v1.19.0
 	github.com/go-playground/form/v4 v4.3.0
+	github.com/stretchr/testify v1.11.1
 	github.com/v8tix/beecore-eda v1.2.0
+	github.com/v8tix/beecore-http v0.1.0
+	github.com/v8tix/kawa v1.0.3
 	golang.org/x/crypto v0.54.0
 	golang.org/x/exp v0.0.0-20260718201538-764159d718ef
 	golang.org/x/text v0.40.0
@@ -70,13 +73,10 @@ require (
 	github.com/samber/lo v1.53.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/teivah/onecontext v1.3.0 // indirect
 	github.com/v8tix/beecore-auth-v3-mod v1.0.6 // indirect
 	github.com/v8tix/beecore-hash-mod v1.0.3 // indirect
-	github.com/v8tix/beecore-http v0.1.0 // indirect
 	github.com/v8tix/jsonx v1.0.1 // indirect
-	github.com/v8tix/kawa v1.0.3 // indirect
 	github.com/wneessen/go-mail v0.8.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.44.0 // indirect

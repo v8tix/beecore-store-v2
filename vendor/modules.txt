@@ -340,6 +340,8 @@ github.com/v8tix/beecore-eda/smtp
 github.com/v8tix/beecore-hash-mod
 # github.com/v8tix/beecore-http v0.1.0 => ../beecore-http
 ## explicit; go 1.26
+github.com/v8tix/beecore-http/messages/users/v1
+github.com/v8tix/beecore-http/validator
 github.com/v8tix/beecore-http/worker
 # github.com/v8tix/jsonx v1.0.1
 ## explicit; go 1.26
