@@ -53,4 +53,12 @@ var (
 	// which special-cases this exact message to flag the form's
 	// web.MaxAddresses field instead of rendering a generic error page.
 	ErrMaxAddressesReached = errors.New("maximum address length reached")
+
+	// ErrBasketCheckedOut mirrors the downstream beecore-baskets service's
+	// 409 Conflict response from BasketAddItem — the source repo's
+	// cmd/web/products_handler.go searchAddItem handler treats this as "the
+	// session's basket may already be checked out" (e.g. a stale tab from a
+	// completed order) and transparently starts a fresh basket and retries,
+	// instead of showing the user a server error.
+	ErrBasketCheckedOut = errors.New("basket already checked out")
 )
