@@ -60,6 +60,32 @@ func newTemplateData(r *http.Request) map[string]any {
 	}
 }
 
+// SetAuthenticatedUser, GetAuthenticatedUser and NewTemplateData are this
+// package's exported entry points for the composition root
+// (infrastructure/api/web, plan Task 19), which has no vertical-slice
+// package of its own: its authenticate/requireAuthenticatedUser middleware
+// populates the request context via SetAuthenticatedUser (mirroring
+// contextSetAuthenticatedUser in the source repo's cmd/web/context.go, run
+// once per request rather than per-handler), and its home/logout handlers
+// (no natural vertical-slice owner — see that file's doc comment) call
+// NewTemplateData the same way every handler in this package already does
+// via the unexported newTemplateData. Every handler in this package
+// continues to use the unexported contextGetAuthenticatedUser/
+// contextSetAuthenticatedUser/newTemplateData directly — these are thin
+// aliases for the one caller outside this package, matching the precedent
+// set by beecore-admin-v2's own handler package.
+func SetAuthenticatedUser(r *http.Request, user *domain.User) *http.Request {
+	return contextSetAuthenticatedUser(r, user)
+}
+
+func GetAuthenticatedUser(r *http.Request) *domain.User {
+	return contextGetAuthenticatedUser(r)
+}
+
+func NewTemplateData(r *http.Request) map[string]any {
+	return newTemplateData(r)
+}
+
 // logError, serverError and badRequest mirror their same-named methods on
 // application in the source repo's cmd/web/errors.go. Unlike the source's
 // serverErrorFromHTTP, there is no kawa-aware variant here — every error

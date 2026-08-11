@@ -47,4 +47,20 @@ type PayPhoneRemote interface {
 	// cancellation would require PayPhone's separate reverse API, never
 	// implemented upstream either.
 	CancelPayment(ctx context.Context, payphoneID, clientTransactionID string) error
+
+	// GeneratePayPhoneConfig builds the JSON configuration the checkout
+	// page hands to PayPhone's JS widget (token, amounts in cents, store
+	// ID, response/cancel callback URLs, and the shopper's own contact
+	// details) so the widget can initiate a charge client-side. Mirrors
+	// PayPhoneRepositoryStrategy.generatePayPhoneConfigInternal in the
+	// source repo field-for-field, minus its own FindUserByID call: user
+	// is already resolved by the caller (core/payment.Service, via
+	// resource.AuthRemote.FindUserByID — plan Task 19) since one vertical
+	// slice's outbound adapter shouldn't reach into another's; see
+	// resource.AuthRemote's doc comment. No HTTP call is made here (pure
+	// config assembly from cfg + req + user), so this returns no error,
+	// unlike GeneratePayPhoneConfig/GeneratePayPhoneConfigWithTransactionID
+	// at the source repo's PayPhoneRepositoryStrategy layer (whose only
+	// failure mode was that now-relocated user lookup).
+	GeneratePayPhoneConfig(req domain.PaymentRequest, clientTransactionID string, user domain.User) map[string]any
 }

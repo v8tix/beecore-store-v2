@@ -116,6 +116,34 @@ func (_m *AuthRemote) FindUserByEmailAndPassword(ctx context.Context, email stri
 	return r0, r1
 }
 
+// FindUserByID provides a mock function with given fields: ctx, id, token
+func (_m *AuthRemote) FindUserByID(ctx context.Context, id string, token string) (domain.User, error) {
+	ret := _m.Called(ctx, id, token)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindUserByID")
+	}
+
+	var r0 domain.User
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (domain.User, error)); ok {
+		return rf(ctx, id, token)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) domain.User); ok {
+		r0 = rf(ctx, id, token)
+	} else {
+		r0 = ret.Get(0).(domain.User)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, id, token)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FindUserTokenByEmailAndPassword provides a mock function with given fields: ctx, email, password, token
 func (_m *AuthRemote) FindUserTokenByEmailAndPassword(ctx context.Context, email string, password string, token string) (string, string, error) {
 	ret := _m.Called(ctx, email, password, token)

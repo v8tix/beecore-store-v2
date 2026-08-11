@@ -99,6 +99,44 @@ func TestFindUserByEmail_FoundReturnsUser(t *testing.T) {
 	}
 }
 
+func TestFindUserByID_Success(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/users/u1" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Method != http.MethodGet {
+			t.Errorf("unexpected method: %s", r.Method)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer admin-tok" {
+			t.Errorf("unexpected auth header: %s", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"user":{"id":"u1","email":"a@b.com","phone":"0999999999","dni":"1234567890"}}`))
+	}))
+	defer ts.Close()
+
+	user, err := newTestClient(ts.URL).FindUserByID(context.Background(), "u1", "admin-tok")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user.ID != "u1" || user.Email != "a@b.com" || user.Phone != "0999999999" || user.DNI != "1234567890" {
+		t.Fatalf("unexpected user: %+v", user)
+	}
+}
+
+func TestFindUserByID_NotFoundTranslatesToSentinel(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"error":"user not found"}`))
+	}))
+	defer ts.Close()
+
+	_, err := newTestClient(ts.URL).FindUserByID(context.Background(), "missing", "admin-tok")
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Fatalf("got %v, want domain.ErrUserNotFound", err)
+	}
+}
+
 func TestActivateUser_TokenMismatchTranslatesToSentinel(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {

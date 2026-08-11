@@ -110,4 +110,30 @@ type AuthRemote interface {
 	// both are the two refresh_token strict-decode-failure risks the
 	// Foundation phase's beecore-http fix resolves.
 	RefreshUserToken(ctx context.Context, userID, refreshToken, token string) (accessToken string, err error)
+
+	// FindUserByID looks up a user by ID. Mirrors
+	// BaseRepositoryImpl.FindUserByID in the source repo's
+	// user_repository.go — resolved here (plan Task 19), not on
+	// resource.UserRemote: see that file's doc comment for why this is an
+	// auth "who's making the request" concern. Two callers:
+	//
+	//   - The composition root's session-authentication middleware
+	//     (infrastructure/api/web's authenticate/requireAuthenticatedUser,
+	//     mirroring cmd/web/middleware.go in the source repo), to resolve
+	//     the currently logged-in user from their session's UserID on every
+	//     request.
+	//   - core/payment.Service.GeneratePayPhoneConfig/
+	//     GeneratePayPhoneConfigWithTransactionID, to resolve the shopper's
+	//     phone/email/DNI for PayPhone's JS-widget config — mirrors
+	//     PayPhoneRepositoryStrategy.generatePayPhoneConfigInternal's own
+	//     FindUserByID call in the source repo (payphone_payment_strategy_
+	//     repository.go), relocated onto resource.AuthRemote instead of
+	//     called directly from the payment adapter, since one vertical
+	//     slice's outbound adapter shouldn't depend on another's — the
+	//     service layer composes both instead (core/payment.Service gains
+	//     an AuthRemote dependency alongside its existing PayPhoneRemote
+	//     one).
+	//
+	// err is domain.ErrUserNotFound on a downstream 404.
+	FindUserByID(ctx context.Context, id, token string) (domain.User, error)
 }

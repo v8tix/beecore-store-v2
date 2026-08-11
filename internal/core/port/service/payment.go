@@ -34,4 +34,23 @@ type Payment interface {
 	// layer — a deliberate no-op, see resource.PayPhoneRemote's doc
 	// comment.
 	CancelPayment(ctx context.Context, payphoneID, clientTransactionID string) error
+
+	// GeneratePayPhoneConfig resolves req.UserID's contact details (via
+	// resource.AuthRemote.FindUserByID) and builds the checkout page's
+	// PayPhone JS-widget configuration, minting a fresh client transaction
+	// ID first if req.ClientTransactionID is empty. Mirrors
+	// PayPhoneRepositoryStrategy.GeneratePayPhoneConfig at the service
+	// layer (plan Task 19 — see resource.AuthRemote's and
+	// resource.PayPhoneRemote's doc comments for why the user lookup moved
+	// here).
+	GeneratePayPhoneConfig(ctx context.Context, req domain.PaymentRequest) (map[string]any, error)
+
+	// GeneratePayPhoneConfigWithTransactionID is GeneratePayPhoneConfig
+	// with an explicit, caller-chosen client transaction ID instead of
+	// minting one — used when the checkout page has already persisted an
+	// ID (in the browser session) it needs the widget config to stay
+	// consistent with. Mirrors
+	// PayPhoneRepositoryStrategy.GeneratePayPhoneConfigWithTransactionID at
+	// the service layer.
+	GeneratePayPhoneConfigWithTransactionID(ctx context.Context, req domain.PaymentRequest, clientTransactionID string) (map[string]any, error)
 }

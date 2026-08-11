@@ -93,9 +93,16 @@ type PaymentResult struct {
 //     its doc comment) — mirrors the
 //     app.Cfg.BusinessParameters.Country.Currency argument the source
 //     passes into dto.ToCanonicalPaymentRequest.
+//   - UserID identifies who's paying — unused by ProcessPayment/
+//     ConfirmPayment/CancelPayment (none of the three need it), but read by
+//     core/payment.Service.GeneratePayPhoneConfig/
+//     GeneratePayPhoneConfigWithTransactionID (plan Task 19) to resolve the
+//     shopper's contact details for PayPhone's JS-widget config, mirroring
+//     model.CanonicalPaymentRequest.UserID in the source repo.
 type PaymentRequest struct {
 	OrderID             string
 	ClientTransactionID string
 	Currency            string
+	UserID              string
 	Financials          Financials
 }

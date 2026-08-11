@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -231,6 +232,59 @@ func (c *Client) callConfirmAPI(ctx context.Context, id int, clientTxID string) 
 // preserved exactly rather than silently dropped.
 func (c *Client) CancelPayment(_ context.Context, _, _ string) error {
 	return nil
+}
+
+// GeneratePayPhoneConfig mirrors
+// PayPhoneRepositoryStrategy.generatePayPhoneConfigInternal in the source
+// repo field-for-field — see resource.PayPhoneRemote's doc comment for why
+// the FindUserByID call it used to make there is now the caller's job.
+// Amounts are converted to cents with math.Round to avoid floating-point
+// drift, same as the source; timeZone falls back to -5 (Ecuador) when
+// cfg.Payphone.TimeZone is empty or non-numeric, same as the source.
+func (c *Client) GeneratePayPhoneConfig(req domain.PaymentRequest, clientTransactionID string, user domain.User) map[string]any {
+	amountInCents := int(math.Round(req.Financials.Total * 100))
+	subtotalInCents := int(math.Round(req.Financials.Subtotal * 100))
+	taxesInCents := int(math.Round(req.Financials.TotalTaxesAmount * 100))
+	shippingInCents := int(math.Round(req.Financials.TotalShippingAmount * 100))
+
+	timeZone := -5
+	if c.cfg.Payphone.TimeZone != "" {
+		if parsed, err := strconv.Atoi(c.cfg.Payphone.TimeZone); err == nil {
+			timeZone = parsed
+		}
+	}
+
+	currency := req.Currency
+	if currency == "" {
+		currency = defaultCurrency
+	}
+
+	return map[string]any{
+		"token":               c.cfg.Payphone.Token,
+		"clientTransactionId": clientTransactionID,
+		"amount":              amountInCents,
+		"amountWithoutTax":    0,
+		"amountWithTax":       subtotalInCents,
+		"tax":                 taxesInCents,
+		"service":             shippingInCents,
+		"tip":                 0,
+		"currency":            currency,
+		"storeId":             c.cfg.Payphone.StoreID,
+		"reference":           fmt.Sprintf("%s Order - %s", c.cfg.App.Name, clientTransactionID),
+		"lang":                c.cfg.Payphone.Language,
+		"defaultMethod":       "card",
+		"timeZone":            timeZone,
+		"lat":                 c.cfg.Payphone.Latitude,
+		"lng":                 c.cfg.Payphone.Longitude,
+		"optionalParameter":   fmt.Sprintf("UserID: %s", req.UserID),
+		"responseUrl":         fmt.Sprintf("%s/payphone/confirm", c.cfg.Payphone.BaseURL),
+		"cancelUrl":           fmt.Sprintf("%s/payphone/cancel", c.cfg.Payphone.BaseURL),
+		"environment":         c.cfg.Payphone.Environment,
+		"phoneNumber":         user.Phone,
+		"email":               user.Email,
+		"documentId":          user.DNI,
+		"identificationType":  1, // Cédula (default for Ecuador)
+	}
 }
 
 // hasAnyProduct mirrors the source's `len(req.CanonicalOrder.Products) ==

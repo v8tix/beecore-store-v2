@@ -60,6 +60,26 @@ func (_m *PayPhoneRemote) ConfirmPayment(ctx context.Context, payphoneID string,
 	return r0, r1
 }
 
+// GeneratePayPhoneConfig provides a mock function with given fields: req, clientTransactionID, user
+func (_m *PayPhoneRemote) GeneratePayPhoneConfig(req domain.PaymentRequest, clientTransactionID string, user domain.User) map[string]interface{} {
+	ret := _m.Called(req, clientTransactionID, user)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GeneratePayPhoneConfig")
+	}
+
+	var r0 map[string]interface{}
+	if rf, ok := ret.Get(0).(func(domain.PaymentRequest, string, domain.User) map[string]interface{}); ok {
+		r0 = rf(req, clientTransactionID, user)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]interface{})
+		}
+	}
+
+	return r0
+}
+
 // ProcessPayment provides a mock function with given fields: ctx, req
 func (_m *PayPhoneRemote) ProcessPayment(ctx context.Context, req domain.PaymentRequest) (domain.PaymentResult, error) {
 	ret := _m.Called(ctx, req)

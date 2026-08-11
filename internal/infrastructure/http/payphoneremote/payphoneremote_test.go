@@ -410,3 +410,88 @@ func TestValidatePayPhoneOrder(t *testing.T) {
 		})
 	}
 }
+
+// TestGeneratePayPhoneConfig proves the JS-widget config is assembled
+// field-for-field from cfg/req/user, mirroring
+// PayPhoneRepositoryStrategy.generatePayPhoneConfigInternal in the source
+// repo — see resource.PayPhoneRemote's doc comment for why FindUserByID
+// itself isn't this method's job.
+func TestGeneratePayPhoneConfig(t *testing.T) {
+	c := newTestClient(&config.Cfg{
+		App: config.App{Name: "BeeCore Store"},
+		Payphone: config.Payphone{
+			Token:       "ph-token",
+			StoreID:     "store-1",
+			BaseURL:     "https://store.example.com",
+			Environment: "Production",
+			TimeZone:    "-5",
+			Latitude:    "-0.22",
+			Longitude:   "-78.51",
+			Language:    "es",
+		},
+	})
+
+	req := domain.PaymentRequest{
+		Currency: "USD",
+		UserID:   "u1",
+		Financials: domain.Financials{
+			Subtotal:            20,
+			TotalTaxesAmount:    2,
+			TotalShippingAmount: 1,
+			Total:               23,
+		},
+	}
+	user := domain.User{Phone: "0999999999", Email: "buyer@example.com", DNI: "1234567890"}
+
+	got := c.GeneratePayPhoneConfig(req, "ctx-1", user)
+
+	want := map[string]any{
+		"token":               "ph-token",
+		"clientTransactionId": "ctx-1",
+		"amount":              2300,
+		"amountWithoutTax":    0,
+		"amountWithTax":       2000,
+		"tax":                 200,
+		"service":             100,
+		"tip":                 0,
+		"currency":            "USD",
+		"storeId":             "store-1",
+		"reference":           "BeeCore Store Order - ctx-1",
+		"lang":                "es",
+		"defaultMethod":       "card",
+		"timeZone":            -5,
+		"lat":                 "-0.22",
+		"lng":                 "-78.51",
+		"optionalParameter":   "UserID: u1",
+		"responseUrl":         "https://store.example.com/payphone/confirm",
+		"cancelUrl":           "https://store.example.com/payphone/cancel",
+		"environment":         "Production",
+		"phoneNumber":         "0999999999",
+		"email":               "buyer@example.com",
+		"documentId":          "1234567890",
+		"identificationType":  1,
+	}
+
+	if len(got) != len(want) {
+		t.Fatalf("got %d keys, want %d: got=%+v", len(got), len(want), got)
+	}
+	for k, wv := range want {
+		if gv := got[k]; gv != wv {
+			t.Errorf("key %q = %v (%T), want %v (%T)", k, gv, gv, wv, wv)
+		}
+	}
+}
+
+// TestGeneratePayPhoneConfig_DefaultTimeZone proves timeZone falls back to
+// -5 (Ecuador) when cfg.Payphone.TimeZone is empty, same as the source.
+func TestGeneratePayPhoneConfig_DefaultTimeZone(t *testing.T) {
+	c := newTestClient(&config.Cfg{})
+
+	got := c.GeneratePayPhoneConfig(domain.PaymentRequest{}, "ctx-1", domain.User{})
+	if got["timeZone"] != -5 {
+		t.Errorf("timeZone = %v, want -5", got["timeZone"])
+	}
+	if got["currency"] != defaultCurrency {
+		t.Errorf("currency = %v, want %v", got["currency"], defaultCurrency)
+	}
+}

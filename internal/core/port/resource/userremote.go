@@ -18,14 +18,15 @@ import "context"
 // user_repository.go also defines FindUserByID, used by the source repo's
 // auth middleware (cmd/web/middleware.go's authenticate/
 // requireAuthenticatedUser) to resolve the currently logged-in user on
-// every request — not by any user-profile handler. It isn't ported here:
-// this repo's session-resolution middleware doesn't exist yet
-// (composition-root wiring, plan Task 19); when it lands, FindUserByID
-// most naturally belongs on resource.AuthRemote instead (an auth "who's
-// making the request" concern, not a profile-management one), matching
-// the precedent set by HasAddresses relocating onto its true owner
-// (resource.AddressRemote — see that file's doc comment) rather than
-// staying wherever the source repo happened to define it.
+// every request — not by any user-profile handler. It is NOT ported here:
+// now that the composition-root's session-resolution middleware exists
+// (plan Task 19), FindUserByID lives on resource.AuthRemote instead (an
+// auth "who's making the request" concern, not a profile-management one —
+// see that file's doc comment for its full mapping, including its second
+// caller, core/payment.Service), matching the precedent set by
+// HasAddresses relocating onto its true owner (resource.AddressRemote —
+// see that file's doc comment) rather than staying wherever the source
+// repo happened to define it.
 type UserRemote interface {
 	// UpdateUser updates a user's DNI, name, birthday, phone, image URL
 	// and website. err is domain.ErrUserNotFound on a downstream 404 —

@@ -60,6 +60,66 @@ func (_m *Payment) ConfirmPayment(ctx context.Context, payphoneID string, client
 	return r0, r1
 }
 
+// GeneratePayPhoneConfig provides a mock function with given fields: ctx, req
+func (_m *Payment) GeneratePayPhoneConfig(ctx context.Context, req domain.PaymentRequest) (map[string]interface{}, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GeneratePayPhoneConfig")
+	}
+
+	var r0 map[string]interface{}
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.PaymentRequest) (map[string]interface{}, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, domain.PaymentRequest) map[string]interface{}); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]interface{})
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, domain.PaymentRequest) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GeneratePayPhoneConfigWithTransactionID provides a mock function with given fields: ctx, req, clientTransactionID
+func (_m *Payment) GeneratePayPhoneConfigWithTransactionID(ctx context.Context, req domain.PaymentRequest, clientTransactionID string) (map[string]interface{}, error) {
+	ret := _m.Called(ctx, req, clientTransactionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GeneratePayPhoneConfigWithTransactionID")
+	}
+
+	var r0 map[string]interface{}
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.PaymentRequest, string) (map[string]interface{}, error)); ok {
+		return rf(ctx, req, clientTransactionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, domain.PaymentRequest, string) map[string]interface{}); ok {
+		r0 = rf(ctx, req, clientTransactionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]interface{})
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, domain.PaymentRequest, string) error); ok {
+		r1 = rf(ctx, req, clientTransactionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ProcessPayment provides a mock function with given fields: ctx, req
 func (_m *Payment) ProcessPayment(ctx context.Context, req domain.PaymentRequest) (domain.PaymentResult, error) {
 	ret := _m.Called(ctx, req)

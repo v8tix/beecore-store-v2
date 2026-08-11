@@ -58,6 +58,37 @@ func (c *Client) FindTokenByEmailAndPassword(ctx context.Context, email, passwor
 	return env.Body.Auth.Token, nil
 }
 
+// FindUserByID mirrors BaseRepositoryImpl.FindUserByID (GET
+// users/{id}) — see resource.AuthRemote's doc comment for its two callers.
+// err is domain.ErrUserNotFound on a downstream 404.
+func (c *Client) FindUserByID(ctx context.Context, id, token string) (domain.User, error) {
+	url := fmt.Sprintf("%s/%s/%s", c.cfg.Integration.V1.AuthURL, "users", id)
+
+	call := kawa.NewCall[kawa.NoReq, users.UserV1EnvV1Res](c.cfg.Web.HTTPClient, kawa.Get, url).
+		WithHeaders(buildAuthHeader(token)).
+		WithDeadline(c.deadline()).
+		WithRetryPolicy(c.retryPolicy())
+
+	env, err := call.DoWithRetry(ctx, nil)
+	if err != nil {
+		statusCode, _, _, ok := decodeHTTPError(err)
+		if !ok {
+			return domain.User{}, err
+		}
+		if statusCode == 404 {
+			return domain.User{}, domain.ErrUserNotFound
+		}
+
+		return domain.User{}, translateHTTPError(err)
+	}
+
+	if env.Body == nil {
+		return domain.User{}, nil
+	}
+
+	return toDomainUser(env.Body.User), nil
+}
+
 // FindUserByEmail mirrors BaseRepositoryImpl.FindUserByEmail. err is
 // domain.ErrUserNotFound on a downstream 404.
 func (c *Client) FindUserByEmail(ctx context.Context, email, token string) (domain.User, error) {
