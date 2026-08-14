@@ -8,6 +8,8 @@ var (
 	ErrSessionBasketIDRequired     = errors.New("basket ID is required")
 	ErrUserAccessTokenRequired     = errors.New("user access token is required")
 	ErrClientTransactionIDRequired = errors.New("client transaction ID not found in session")
+	ErrMissingShippingAddress      = errors.New("shipping address is required")
+	ErrMissingPaymentID            = errors.New("payment ID not found in session")
 )
 
 const (

@@ -109,7 +109,7 @@ func parseDuration(s string, defaultVal time.Duration) time.Duration {
 type App struct {
 	Name                      string   `json:"name,omitempty"`
 	SupportEmail              string   `json:"support_email,omitempty"`
-	ActivationTokenExpiration Duration `json:"activation_token_expiration,omitempty"`
+	ActivationTokenExpiration Duration `json:"activation_token_expiration"`
 }
 
 // GetActivationTokenExpiration returns the configured activation-token TTL,
@@ -177,7 +177,7 @@ type Web struct {
 	PaymentsPort      string `json:"payments_port,omitempty"`
 	OrdersPort        string `json:"orders_port,omitempty"`
 	NotificationsPort string `json:"notifications_port,omitempty"`
-	Cors              Cors   `json:"cors,omitempty"`
+	Cors              Cors   `json:"cors"`
 	AdminBaseURL      string `json:"admin_base_url,omitempty"`
 	ShutdownTimeout   int    `json:"shutdown_timeout,omitempty"`
 	// HTTPClientTimeout is the total request timeout for the shared HTTP client (e.g. "5s"). Default: 5s.
@@ -210,7 +210,7 @@ type PostgresPool struct {
 
 type Postgres struct {
 	Dsn  string       `json:"dsn,omitempty"`
-	Pool PostgresPool `json:"pool,omitempty"`
+	Pool PostgresPool `json:"pool"`
 	DB   *pgxpool.Pool
 	init OnceWithErr
 }
@@ -309,7 +309,7 @@ type ISO4217 struct {
 // Currency represents currency configuration.
 type Currency struct {
 	Name    string  `json:"name,omitempty"`
-	Iso4217 ISO4217 `json:"iso_4217,omitempty"`
+	Iso4217 ISO4217 `json:"iso_4217"`
 }
 
 // Shipping represents shipping configuration.
@@ -328,14 +328,14 @@ type Taxes struct {
 type Country struct {
 	Name            string   `json:"name,omitempty"`
 	PaymentStrategy string   `json:"payment_strategy,omitempty"`
-	Currency        Currency `json:"currency,omitempty"`
-	Shipping        Shipping `json:"shipping,omitempty"`
-	Taxes           Taxes    `json:"taxes,omitempty"`
+	Currency        Currency `json:"currency"`
+	Shipping        Shipping `json:"shipping"`
+	Taxes           Taxes    `json:"taxes"`
 }
 
 // BusinessParameters represents business-specific configuration parameters.
 type BusinessParameters struct {
-	Country Country `json:"country,omitempty"`
+	Country Country `json:"country"`
 }
 
 // OutboxRetryPolicy configures the per-aggregate poison-pill retry behaviour.
@@ -367,7 +367,7 @@ type OutboxRetryPolicy struct {
 type OutboxPartition struct {
 	PartitionID     int               `json:"partition_id"`
 	TotalPartitions int               `json:"total_partitions"`
-	RetryPolicy     OutboxRetryPolicy `json:"retry_policy,omitempty"`
+	RetryPolicy     OutboxRetryPolicy `json:"retry_policy"`
 }
 
 // IsPartitioned reports whether this configuration describes a partitioned
@@ -389,32 +389,32 @@ type IntegrationV1 struct {
 
 // Integration represents integration configuration.
 type Integration struct {
-	V1 IntegrationV1 `json:"v1,omitempty"`
+	V1 IntegrationV1 `json:"v1"`
 }
 
 // Cfg represents the main application configuration.
 type Cfg struct {
-	App                App                `json:"app,omitempty"`
-	Log                Log                `json:"log,omitempty"`
-	JWT                JWT                `json:"jwt,omitempty"`
-	Web                Web                `json:"web,omitempty"`
-	Postgres           Postgres           `json:"postgres,omitempty"`
-	Nats               Nats               `json:"nats,omitempty"`
-	KMS                KMS                `json:"kms,omitempty"`
-	Redis              Redis              `json:"redis,omitempty"`
-	SMTP               SMTP               `json:"smtp,omitempty"`
-	Integration        Integration        `json:"integration,omitempty"`
-	HTTPClient         HTTPClient         `json:"http_client,omitempty"`
-	Admin              Admin              `json:"admin,omitempty"`
-	Pagination         Pagination         `json:"pagination,omitempty"`
-	UserRoles          UserRoles          `json:"user_roles,omitempty"`
-	CloudStorage       CloudStorage       `json:"cloud_storage,omitempty"`
-	Session            Session            `json:"session,omitempty"`
-	Worker             Worker             `json:"worker,omitempty"`
-	PayPal             PayPal             `json:"paypal,omitempty"`
-	Payphone           Payphone           `json:"payphone,omitempty"`
-	BusinessParameters BusinessParameters `json:"business_parameters,omitempty"`
-	Outbox             OutboxPartition    `json:"outbox,omitempty"`
+	App                App                `json:"app"`
+	Log                Log                `json:"log"`
+	JWT                JWT                `json:"jwt"`
+	Web                Web                `json:"web"`
+	Postgres           Postgres           `json:"postgres"`
+	Nats               Nats               `json:"nats"`
+	KMS                KMS                `json:"kms"`
+	Redis              Redis              `json:"redis"`
+	SMTP               SMTP               `json:"smtp"`
+	Integration        Integration        `json:"integration"`
+	HTTPClient         HTTPClient         `json:"http_client"`
+	Admin              Admin              `json:"admin"`
+	Pagination         Pagination         `json:"pagination"`
+	UserRoles          UserRoles          `json:"user_roles"`
+	CloudStorage       CloudStorage       `json:"cloud_storage"`
+	Session            Session            `json:"session"`
+	Worker             Worker             `json:"worker"`
+	PayPal             PayPal             `json:"paypal"`
+	Payphone           Payphone           `json:"payphone"`
+	BusinessParameters BusinessParameters `json:"business_parameters"`
+	Outbox             OutboxPartition    `json:"outbox"`
 	AuthService
 	WorkerCfg *worker.Cfg
 	*slog.Logger

@@ -13,16 +13,22 @@ import (
 )
 
 // CreateBasket mirrors BaseRepositoryImpl.CreateBasket: POST baskets.
+//
+// Single-shot (.Do, not .DoWithRetry) — same reasoning as
+// orderremote.CreateOrder: a POST with no idempotency key that persists a
+// new record. A retried timeout here would silently start two baskets for
+// one user, one of them orphaned — same failure class as the duplicate
+// orders that motivated this fix, just for basket creation instead of
+// order creation.
 func (c *Client) CreateBasket(ctx context.Context, userID, token string) (string, error) {
 	url := fmt.Sprintf("%s/%s", c.cfg.Integration.V1.BasketsURL, "baskets")
 	req := baskets.StartBasketV1Req{UserID: userID}
 
 	call := kawa.NewCall[baskets.StartBasketV1Req, baskets.StartBasketEnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
 		WithHeaders(httpshared.BuildAuthHeader(token)).
-		WithDeadline(c.deadline()).
-		WithRetryPolicy(c.retryPolicy())
+		WithDeadline(c.deadline())
 
-	env, err := call.DoWithRetry(ctx, &req)
+	env, err := call.Do(ctx, &req)
 	if err != nil {
 		return "", httpshared.TranslateHTTPError(err)
 	}
@@ -101,16 +107,23 @@ func (c *Client) BasketRemoveItem(ctx context.Context, id, productID string, qua
 
 // CheckoutBasket mirrors BaseRepositoryImpl.CheckoutBasket: PUT
 // baskets/{id}/checkout.
+//
+// Single-shot (.Do, not .DoWithRetry) — same reasoning as
+// orderremote.CreateOrder. Checking out a basket transitions it to
+// CHECKED_OUT and fires a domain event downstream services react to; a
+// retried timeout risks a second checkout attempt racing that transition
+// (best case a harmless no-op/conflict, worst case duplicate downstream
+// side effects) instead of a clean error ConfirmPayment's caller can act
+// on.
 func (c *Client) CheckoutBasket(ctx context.Context, id, paymentID, shippingAddressID, token string) error {
 	url := fmt.Sprintf("%s/%s/%s/%s", c.cfg.Integration.V1.BasketsURL, "baskets", id, "checkout")
 	req := baskets.CheckoutBasketV1Req{PaymentID: paymentID, ShippingAddressID: shippingAddressID}
 
 	call := kawa.NewCall[baskets.CheckoutBasketV1Req, kawa.NoRes](c.cfg.Web.HTTPClient, kawa.Put, url).
 		WithHeaders(httpshared.BuildAuthHeader(token)).
-		WithDeadline(c.deadline()).
-		WithRetryPolicy(c.retryPolicy())
+		WithDeadline(c.deadline())
 
-	_, err := call.DoWithRetry(ctx, &req)
+	_, err := call.Do(ctx, &req)
 	if err != nil {
 		return httpshared.TranslateHTTPError(err)
 	}

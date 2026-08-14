@@ -402,7 +402,11 @@ func (s *AuthService) GetPermissionsSVC(ctx context.Context, userID string) ([]m
 func (s *AuthService) GetTokenByUserIDAndScopeSVC(ctx context.Context, userID string, scope repository.TokenScope) (*model.Token, error) {
 	token, err := s.FindTokenByUserIDAndScope(ctx, userID, scope)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrTokenFindFailed, err)
+		// %w (not %v) on both: middleware.validateTokenStatus does
+		// errors.Is(err, repository.ErrTokenNotFound/ErrTokenScope) on this
+		// error to distinguish a clean 401/403 from a genuine 500 — %v here
+		// broke that chain and leaked raw internal errors as 500s.
+		return nil, fmt.Errorf("%w: %w", ErrTokenFindFailed, err)
 	}
 
 	return token, nil

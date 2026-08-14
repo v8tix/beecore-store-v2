@@ -61,13 +61,27 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 		}
 	})
 
+	t.Run("missing shipping_address_id in body is a 400", func(t *testing.T) {
+		h := newPaymentHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), store)
+
+		body := strings.NewReader(`{"total":23}`)
+		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{keys.SessionBasketID: "b1"})
+		w := httptest.NewRecorder()
+		h.ProcessPayment(w, r)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("got status %d, want %d", w.Code, http.StatusBadRequest)
+		}
+	})
+
 	t.Run("financials failure is a 500", func(t *testing.T) {
 		basketService := servicemocks.NewBasket(t)
 		basketService.On("ComputeFinancials", mock.Anything, "b1").Return(domain.Financials{}, errors.New("boom"))
 
 		h := newPaymentHandler(t, servicemocks.NewPayment(t), basketService, store)
 
-		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", nil, map[any]any{keys.SessionBasketID: "b1"})
+		body := strings.NewReader(`{"shipping_address_id":"a1","total":23}`)
+		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{keys.SessionBasketID: "b1"})
 		w := httptest.NewRecorder()
 		h.ProcessPayment(w, r)
 
@@ -76,7 +90,7 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 		}
 	})
 
-	t.Run("success computes financials, calls PaymentService and responds with JSON", func(t *testing.T) {
+	t.Run("success stores shipping address, computes financials, calls PaymentService and responds with JSON", func(t *testing.T) {
 		basketService := servicemocks.NewBasket(t)
 		financials := domain.Financials{Total: 23}
 		basketService.On("ComputeFinancials", mock.Anything, "b1").Return(financials, nil)
@@ -88,7 +102,8 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 
 		h := newPaymentHandler(t, paymentService, basketService, store)
 
-		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", nil, map[any]any{keys.SessionBasketID: "b1"})
+		body := strings.NewReader(`{"shipping_address_id":"a1","total":23}`)
+		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{keys.SessionBasketID: "b1"})
 		w := httptest.NewRecorder()
 		h.ProcessPayment(w, r)
 
@@ -99,7 +114,7 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 			t.Fatalf("got Content-Type %q, want application/json", got)
 		}
 		if len(w.Result().Cookies()) == 0 {
-			t.Fatal("expected the client-transaction-ID/payment-ID cookie to be saved")
+			t.Fatal("expected the shipping-address/client-transaction-ID/payment-ID cookie to be saved")
 		}
 	})
 
@@ -112,7 +127,8 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 
 		h := newPaymentHandler(t, paymentService, basketService, store)
 
-		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", nil, map[any]any{keys.SessionBasketID: "b1"})
+		body := strings.NewReader(`{"shipping_address_id":"a1","total":23}`)
+		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{keys.SessionBasketID: "b1"})
 		w := httptest.NewRecorder()
 		h.ProcessPayment(w, r)
 
@@ -125,33 +141,49 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 func TestPaymentHandler_ConfirmPayment(t *testing.T) {
 	store := newTestCookieStore()
 
-	t.Run("approved confirmation redirects to /orders/confirm", func(t *testing.T) {
+	confirmSessionValues := map[any]any{
+		keys.SessionID:                "sess-1",
+		keys.SessionBasketID:          "b1",
+		keys.SessionShippingAddressID: "a1",
+		keys.SessionPaymentID:         "pay-1",
+	}
+
+	newConfirmSessionStore := func(t *testing.T) *mocks.SessionStore {
+		sessionStore := mocks.NewSessionStore(t)
+		sessionStore.On("Load", mock.Anything, "sess-1").Return(domain.Session{UserID: "u1"}, nil)
+		return sessionStore
+	}
+
+	t.Run("approved confirmation redirects to /orders/confirm and points the session at the fresh basket", func(t *testing.T) {
 		paymentService := servicemocks.NewPayment(t)
-		paymentService.On("ConfirmPayment", mock.Anything, "123", "ctx-1").
-			Return(domain.PaymentConfirmation{TransactionID: "123", Status: "Approved"}, nil)
+		paymentService.On("ConfirmPayment", mock.Anything, "123", "ctx-1", "u1", "b1", "pay-1", "a1").
+			Return(domain.PaymentConfirmation{TransactionID: "123", Status: "Approved"}, "b2", nil)
 
-		h := newPaymentHandler(t, paymentService, servicemocks.NewBasket(t), store)
+		h := newCheckoutHandler(t, paymentService, servicemocks.NewBasket(t), servicemocks.NewAddress(t), newConfirmSessionStore(t), store)
 
-		r := basketCookieRequest(t, store, http.MethodGet, "/payphone/confirm?id=123&clientTransactionId=ctx-1", nil, map[any]any{})
+		r := basketCookieRequest(t, store, http.MethodGet, "/payphone/confirm?id=123&clientTransactionId=ctx-1", nil, confirmSessionValues)
 		w := httptest.NewRecorder()
 		h.ConfirmPayment(w, r)
 
 		if w.Code != http.StatusSeeOther {
-			t.Fatalf("got status %d, want %d", w.Code, http.StatusSeeOther)
+			t.Fatalf("got status %d, want %d: %s", w.Code, http.StatusSeeOther, w.Body.String())
 		}
 		if got := w.Header().Get("Location"); got != "/orders/confirm" {
 			t.Fatalf("got redirect %q, want %q", got, "/orders/confirm")
+		}
+		if len(w.Result().Cookies()) == 0 {
+			t.Fatal("expected the new-basket-ID cookie to be saved")
 		}
 	})
 
 	t.Run("PaymentService failure is a 500", func(t *testing.T) {
 		paymentService := servicemocks.NewPayment(t)
-		paymentService.On("ConfirmPayment", mock.Anything, "123", "ctx-1").
-			Return(domain.PaymentConfirmation{}, errors.New("boom"))
+		paymentService.On("ConfirmPayment", mock.Anything, "123", "ctx-1", "u1", "b1", "pay-1", "a1").
+			Return(domain.PaymentConfirmation{}, "", errors.New("boom"))
 
-		h := newPaymentHandler(t, paymentService, servicemocks.NewBasket(t), store)
+		h := newCheckoutHandler(t, paymentService, servicemocks.NewBasket(t), servicemocks.NewAddress(t), newConfirmSessionStore(t), store)
 
-		r := basketCookieRequest(t, store, http.MethodGet, "/payphone/confirm?id=123&clientTransactionId=ctx-1", nil, map[any]any{})
+		r := basketCookieRequest(t, store, http.MethodGet, "/payphone/confirm?id=123&clientTransactionId=ctx-1", nil, confirmSessionValues)
 		w := httptest.NewRecorder()
 		h.ConfirmPayment(w, r)
 
@@ -162,10 +194,24 @@ func TestPaymentHandler_ConfirmPayment(t *testing.T) {
 
 	t.Run("non-approved confirmation is a 500, not a redirect", func(t *testing.T) {
 		paymentService := servicemocks.NewPayment(t)
-		paymentService.On("ConfirmPayment", mock.Anything, "123", "ctx-1").
-			Return(domain.PaymentConfirmation{TransactionID: "123", Status: "Rejected", ErrorMessage: "Payment was not approved"}, nil)
+		paymentService.On("ConfirmPayment", mock.Anything, "123", "ctx-1", "u1", "b1", "pay-1", "a1").
+			Return(domain.PaymentConfirmation{TransactionID: "123", Status: "Rejected", ErrorMessage: "Payment was not approved"}, "", nil)
 
-		h := newPaymentHandler(t, paymentService, servicemocks.NewBasket(t), store)
+		h := newCheckoutHandler(t, paymentService, servicemocks.NewBasket(t), servicemocks.NewAddress(t), newConfirmSessionStore(t), store)
+
+		r := basketCookieRequest(t, store, http.MethodGet, "/payphone/confirm?id=123&clientTransactionId=ctx-1", nil, confirmSessionValues)
+		w := httptest.NewRecorder()
+		h.ConfirmPayment(w, r)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("got status %d, want %d", w.Code, http.StatusInternalServerError)
+		}
+	})
+
+	t.Run("no user session is a 500", func(t *testing.T) {
+		sessionStore := mocks.NewSessionStore(t)
+
+		h := newCheckoutHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), servicemocks.NewAddress(t), sessionStore, store)
 
 		r := basketCookieRequest(t, store, http.MethodGet, "/payphone/confirm?id=123&clientTransactionId=ctx-1", nil, map[any]any{})
 		w := httptest.NewRecorder()
@@ -173,6 +219,53 @@ func TestPaymentHandler_ConfirmPayment(t *testing.T) {
 
 		if w.Code != http.StatusInternalServerError {
 			t.Fatalf("got status %d, want %d", w.Code, http.StatusInternalServerError)
+		}
+	})
+
+	t.Run("no basket ID in session is a 500", func(t *testing.T) {
+		h := newCheckoutHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), servicemocks.NewAddress(t), newConfirmSessionStore(t), store)
+
+		r := basketCookieRequest(t, store, http.MethodGet, "/payphone/confirm?id=123&clientTransactionId=ctx-1", nil, map[any]any{keys.SessionID: "sess-1"})
+		w := httptest.NewRecorder()
+		h.ConfirmPayment(w, r)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("got status %d, want %d", w.Code, http.StatusInternalServerError)
+		}
+	})
+
+	t.Run("no shipping address in session is a 500", func(t *testing.T) {
+		h := newCheckoutHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), servicemocks.NewAddress(t), newConfirmSessionStore(t), store)
+
+		r := basketCookieRequest(t, store, http.MethodGet, "/payphone/confirm?id=123&clientTransactionId=ctx-1", nil, map[any]any{
+			keys.SessionID:       "sess-1",
+			keys.SessionBasketID: "b1",
+		})
+		w := httptest.NewRecorder()
+		h.ConfirmPayment(w, r)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("got status %d, want %d", w.Code, http.StatusInternalServerError)
+		}
+	})
+
+	t.Run("missing payment ID in session falls back to the client transaction ID", func(t *testing.T) {
+		paymentService := servicemocks.NewPayment(t)
+		paymentService.On("ConfirmPayment", mock.Anything, "123", "ctx-1", "u1", "b1", "ctx-1", "a1").
+			Return(domain.PaymentConfirmation{TransactionID: "123", Status: "Approved"}, "b2", nil)
+
+		h := newCheckoutHandler(t, paymentService, servicemocks.NewBasket(t), servicemocks.NewAddress(t), newConfirmSessionStore(t), store)
+
+		r := basketCookieRequest(t, store, http.MethodGet, "/payphone/confirm?id=123&clientTransactionId=ctx-1", nil, map[any]any{
+			keys.SessionID:                "sess-1",
+			keys.SessionBasketID:          "b1",
+			keys.SessionShippingAddressID: "a1",
+		})
+		w := httptest.NewRecorder()
+		h.ConfirmPayment(w, r)
+
+		if w.Code != http.StatusSeeOther {
+			t.Fatalf("got status %d, want %d: %s", w.Code, http.StatusSeeOther, w.Body.String())
 		}
 	})
 }

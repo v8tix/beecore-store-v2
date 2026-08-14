@@ -12,6 +12,23 @@ import (
 )
 
 // CreateOrder mirrors BaseRepositoryImpl.CreateOrder: POST orders.
+//
+// Deliberately a single-shot call (.Do, not .DoWithRetry) — confirmed the
+// hard way that retrying it duplicates orders: this endpoint has no
+// idempotency key, and beecore-ordering's own CreateOrder handler
+// (domain-event publish + immediate GetOrder re-fetch) routinely takes
+// longer than the "fast" HTTP profile's 1s deadline under real load. A
+// client-side timeout doesn't mean the server-side write failed — it may
+// complete moments later — so retrying a POST here risks creating a
+// second, fully persisted order for the same checkout. If CreateOrder
+// itself times out, that needs to surface as a real error the caller
+// (ConfirmPayment) can act on, not be silently retried into a duplicate.
+//
+// Also borrows the "slow" profile's deadline (same precedent as
+// GetOrdersByUserID below) rather than c.deadline()'s "fast" 1s — that's
+// what was too tight to begin with (observed CreateOrder taking up to
+// ~2.1s server-side); a single attempt still needs a realistic deadline,
+// just not a retry on top of it.
 func (c *Client) CreateOrder(ctx context.Context, req domain.CreateOrderRequest, token string) (string, error) {
 	url := fmt.Sprintf("%s/%s", c.cfg.Integration.V1.OrdersURL, "orders")
 	wireReq := orders.CreateOrderV1Req{
@@ -24,10 +41,9 @@ func (c *Client) CreateOrder(ctx context.Context, req domain.CreateOrderRequest,
 
 	call := kawa.NewCall[orders.CreateOrderV1Req, orders.GetOrderEnvV1Res](c.cfg.Web.HTTPClient, kawa.Post, url).
 		WithHeaders(httpshared.BuildAuthHeader(token)).
-		WithDeadline(c.deadline()).
-		WithRetryPolicy(c.retryPolicy())
+		WithDeadline(c.cfg.HTTPClient.GetSlow().Timeout.Duration())
 
-	env, err := call.DoWithRetry(ctx, &wireReq)
+	env, err := call.Do(ctx, &wireReq)
 	if err != nil {
 		return "", err
 	}

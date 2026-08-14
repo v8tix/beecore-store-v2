@@ -160,6 +160,8 @@ func setupServices(cfg *config.Cfg, res *resources) (*services, error) {
 		payment: payment.NewPaymentService(payment.Dependencies{
 			PayPhoneRemote: res.payPhoneRemote,
 			AuthRemote:     res.authRemote,
+			OrderRemote:    res.orderRemote,
+			BasketRemote:   res.basketRemote,
 		}),
 	}, nil
 }

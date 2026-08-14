@@ -1,4 +1,4 @@
-# cel.dev/expr v0.25.2
+# cel.dev/expr v0.25.3
 ## explicit; go 1.23.0
 cel.dev/expr
 # cloud.google.com/go v0.123.0
@@ -8,7 +8,7 @@ cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
-# cloud.google.com/go/auth v0.23.0
+# cloud.google.com/go/auth v0.23.1
 ## explicit; go 1.25.0
 cloud.google.com/go/auth
 cloud.google.com/go/auth/credentials
@@ -219,18 +219,12 @@ github.com/gorilla/securecookie
 # github.com/gorilla/sessions v1.4.0
 ## explicit; go 1.23
 github.com/gorilla/sessions
-# github.com/jackc/pgio v1.0.0
-## explicit; go 1.12
-github.com/jackc/pgio
 # github.com/jackc/pgpassfile v1.0.0
 ## explicit; go 1.12
 github.com/jackc/pgpassfile
 # github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761
 ## explicit; go 1.14
 github.com/jackc/pgservicefile
-# github.com/jackc/pgtype v1.14.4
-## explicit; go 1.13
-github.com/jackc/pgtype
 # github.com/jackc/pgx/v5 v5.10.0
 ## explicit; go 1.25.0
 github.com/jackc/pgx/v5
@@ -336,11 +330,11 @@ github.com/stretchr/testify/mock
 # github.com/teivah/onecontext v1.3.0
 ## explicit; go 1.12
 github.com/teivah/onecontext
-# github.com/v8tix/beecore-auth-v3-mod v1.0.6
+# github.com/v8tix/beecore-auth-v3-mod v1.0.7
 ## explicit; go 1.26
 github.com/v8tix/beecore-auth-v3-mod/model
 github.com/v8tix/beecore-auth-v3-mod/repository
-# github.com/v8tix/beecore-eda v1.2.0
+# github.com/v8tix/beecore-eda v1.2.3
 ## explicit; go 1.26
 github.com/v8tix/beecore-eda/config
 github.com/v8tix/beecore-eda/smtp
@@ -462,7 +456,7 @@ golang.org/x/crypto/salsa20/salsa
 # golang.org/x/exp v0.0.0-20260811152304-ee035b5b010f
 ## explicit; go 1.25.0
 golang.org/x/exp/slices
-# golang.org/x/net v0.57.0
+# golang.org/x/net v0.58.0
 ## explicit; go 1.25.0
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2

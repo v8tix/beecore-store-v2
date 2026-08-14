@@ -25,6 +25,15 @@ func (a *app) routes() http.Handler {
 	mux.Use(a.recoverPanic) // Keep panic recovery early in the chain
 	mux.Use(a.securityHeaders)
 	mux.Use(a.metrics) // Add metrics tracking
+
+	// Liveness: process is up and serving HTTP; no dependency checks.
+	mux.Get("/healthcheck", a.healthcheck)
+	// Readiness: liveness plus a cheap Redis ping, so k8s stops routing
+	// traffic here before sessions can actually be resolved. Outside the
+	// CSRF/auth group below, same as /static/*, so probes aren't blocked
+	// by session/CSRF checks.
+	mux.Get("/readiness", a.readiness)
+
 	// Static file handling with caching
 	fileServer := http.FileServer(http.FS(assets.EmbeddedFiles))
 	mux.Handle("/static/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -16,8 +16,9 @@ require (
 	github.com/go-playground/form/v4 v4.3.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/justinas/nosurf v1.2.0
+	github.com/redis/go-redis/v9 v9.22.0
 	github.com/stretchr/testify v1.11.1
-	github.com/v8tix/beecore-eda v1.2.0
+	github.com/v8tix/beecore-eda v1.2.3
 	github.com/v8tix/beecore-http v1.1.0
 	github.com/v8tix/jsonx v1.0.1
 	github.com/v8tix/kawa v1.0.3
@@ -27,9 +28,9 @@ require (
 )
 
 require (
-	cel.dev/expr v0.25.2 // indirect
+	cel.dev/expr v0.25.3 // indirect
 	cloud.google.com/go v0.123.0 // indirect
-	cloud.google.com/go/auth v0.23.0 // indirect
+	cloud.google.com/go/auth v0.23.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.13.0 // indirect
@@ -57,10 +58,8 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.21 // indirect
 	github.com/googleapis/gax-go/v2 v2.23.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
-	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgtype v1.14.4 // indirect
 	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
@@ -72,12 +71,11 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/reactivex/rxgo/v2 v2.5.0 // indirect
-	github.com/redis/go-redis/v9 v9.22.0 // indirect
 	github.com/samber/lo v1.53.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/teivah/onecontext v1.3.0 // indirect
-	github.com/v8tix/beecore-auth-v3-mod v1.0.6 // indirect
+	github.com/v8tix/beecore-auth-v3-mod v1.0.7 // indirect
 	github.com/v8tix/beecore-hash-mod v1.0.3 // indirect
 	github.com/wneessen/go-mail v0.8.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -90,7 +88,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.45.0 // indirect
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

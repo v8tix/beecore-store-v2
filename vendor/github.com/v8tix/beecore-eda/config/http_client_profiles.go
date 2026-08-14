@@ -8,9 +8,9 @@ import "time"
 // MaxRetries is uint64 to match roku.FetchRx's backoffRetries parameter directly,
 // so callers can pass a profile's fields through without a manual conversion.
 type CallProfile struct {
-	Timeout       Duration `json:"timeout,omitempty"`
+	Timeout       Duration `json:"timeout"`
 	MaxRetries    uint64   `json:"max_retries,omitempty"`
-	RetryInterval Duration `json:"retry_interval,omitempty"`
+	RetryInterval Duration `json:"retry_interval"`
 }
 
 func (p CallProfile) resolve(def CallProfile) CallProfile {
@@ -45,12 +45,12 @@ var (
 // left unset in config falls back to that profile's built-in default.
 type HTTPClient struct {
 	// Fast is for simple, low-latency calls: single-record lookups by ID.
-	Fast CallProfile `json:"fast,omitempty"`
+	Fast CallProfile `json:"fast"`
 	// Default is for calls with no more specific profile.
-	Default CallProfile `json:"default,omitempty"`
+	Default CallProfile `json:"default"`
 	// Slow is for calls expected to take noticeably longer, e.g. payment
 	// processing or other heavier cross-service operations.
-	Slow CallProfile `json:"slow,omitempty"`
+	Slow CallProfile `json:"slow"`
 }
 
 // GetFast returns the "fast" call profile, falling back to built-in defaults

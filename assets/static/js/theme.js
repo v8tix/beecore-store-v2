@@ -4208,8 +4208,14 @@ var navbarComboInit = function navbarComboInit() {
     var navbarVerticalBreakpoint = utils.getBreakpoint(navbarVertical);
     var navbarTopBreakpoint = utils.getBreakpoint(navbarTopCombo);
     if (windowWidth < navbarTopBreakpoint) {
+      // COLLAPSE ('.collapse') is only present when the top-combo navbar
+      // wraps its content in a Bootstrap collapse div, as the theme's own
+      // markup does — this app's navbar never added that wrapper, so
+      // navbarCollapse is null below the navbar-expand-lg breakpoint
+      // (992px) and the responsive move-into-sidebar behavior is simply
+      // skipped rather than crashing.
       var navbarCollapse = navbarTopCombo.querySelector(Selector.COLLAPSE);
-      var navbarTopContent = navbarCollapse.innerHTML;
+      var navbarTopContent = navbarCollapse && navbarCollapse.innerHTML;
       if (navbarTopContent) {
         var targetID = utils.getData(navbarTopCombo, 'move-target');
         var targetElement = document.querySelector(targetID);
@@ -4225,8 +4231,14 @@ var navbarComboInit = function navbarComboInit() {
       if (moveableContainer) {
         var _navbarNav = moveableContainer.querySelector(Selector.NAVBAR_NAV);
         utils.hasClass(_navbarNav, ClassName.FLEX_COLUMN) && _navbarNav.classList.remove(ClassName.FLEX_COLUMN);
-        moveableContainer.querySelector(Selector.NAVBAR_VERTICAL_DIVIDER).remove();
-        navbarTopCombo.querySelector(Selector.COLLAPSE).innerHTML = moveableContainer.innerHTML;
+        var _divider = moveableContainer.querySelector(Selector.NAVBAR_VERTICAL_DIVIDER);
+        if (_divider) {
+          _divider.remove();
+        }
+        var _collapseTarget = navbarTopCombo.querySelector(Selector.COLLAPSE);
+        if (_collapseTarget) {
+          _collapseTarget.innerHTML = moveableContainer.innerHTML;
+        }
         moveableContainer.remove();
       }
     }
@@ -5197,15 +5209,24 @@ var wizardInit = function wizardInit() {
         return null;
       });
     });
-    nextButton.addEventListener(events.CLICK, function () {
-      if (count + 1 < tabs.length) {
-        tabs[count + 1].show();
-      }
-    });
-    prevButton.addEventListener(events.CLICK, function () {
-      count -= 1;
-      tabs[count].show();
-    });
+    // nextButton/prevButton (".next button"/".previous button") are only
+    // present in the theme's own JS-driven wizard footer — pages that
+    // implement step transitions server-side (separate page loads per step)
+    // reuse the theme-wizard step-indicator markup without that footer, so
+    // these can legitimately be null.
+    if (nextButton) {
+      nextButton.addEventListener(events.CLICK, function () {
+        if (count + 1 < tabs.length) {
+          tabs[count + 1].show();
+        }
+      });
+    }
+    if (prevButton) {
+      prevButton.addEventListener(events.CLICK, function () {
+        count -= 1;
+        tabs[count].show();
+      });
+    }
     if (tabToggleButtonEl.length) {
       tabToggleButtonEl.forEach(function (item, index) {
         item.addEventListener(events.SHOW, function (e) {
@@ -5240,16 +5261,20 @@ var wizardInit = function wizardInit() {
           }
 
           // card footer remove at last step
-          if (count > tabToggleButtonEl.length - 2) {
-            wizardFooter.classList.add('d-none');
-          } else {
-            wizardFooter.classList.remove('d-none');
+          if (wizardFooter) {
+            if (count > tabToggleButtonEl.length - 2) {
+              wizardFooter.classList.add('d-none');
+            } else {
+              wizardFooter.classList.remove('d-none');
+            }
           }
           // prev-button removing
-          if (count > 0 && count !== tabToggleButtonEl.length - 1) {
-            prevButton.classList.remove('d-none');
-          } else {
-            prevButton.classList.add('d-none');
+          if (prevButton) {
+            if (count > 0 && count !== tabToggleButtonEl.length - 1) {
+              prevButton.classList.remove('d-none');
+            } else {
+              prevButton.classList.add('d-none');
+            }
           }
         });
       });

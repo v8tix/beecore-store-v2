@@ -32,32 +32,39 @@ func (_m *Payment) CancelPayment(ctx context.Context, payphoneID string, clientT
 	return r0
 }
 
-// ConfirmPayment provides a mock function with given fields: ctx, payphoneID, clientTransactionID
-func (_m *Payment) ConfirmPayment(ctx context.Context, payphoneID string, clientTransactionID string) (domain.PaymentConfirmation, error) {
-	ret := _m.Called(ctx, payphoneID, clientTransactionID)
+// ConfirmPayment provides a mock function with given fields: ctx, payphoneID, clientTransactionID, userID, basketID, paymentID, shippingAddressID
+func (_m *Payment) ConfirmPayment(ctx context.Context, payphoneID string, clientTransactionID string, userID string, basketID string, paymentID string, shippingAddressID string) (domain.PaymentConfirmation, string, error) {
+	ret := _m.Called(ctx, payphoneID, clientTransactionID, userID, basketID, paymentID, shippingAddressID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ConfirmPayment")
 	}
 
 	var r0 domain.PaymentConfirmation
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (domain.PaymentConfirmation, error)); ok {
-		return rf(ctx, payphoneID, clientTransactionID)
+	var r1 string
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string) (domain.PaymentConfirmation, string, error)); ok {
+		return rf(ctx, payphoneID, clientTransactionID, userID, basketID, paymentID, shippingAddressID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) domain.PaymentConfirmation); ok {
-		r0 = rf(ctx, payphoneID, clientTransactionID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string) domain.PaymentConfirmation); ok {
+		r0 = rf(ctx, payphoneID, clientTransactionID, userID, basketID, paymentID, shippingAddressID)
 	} else {
 		r0 = ret.Get(0).(domain.PaymentConfirmation)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, payphoneID, clientTransactionID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, string) string); ok {
+		r1 = rf(ctx, payphoneID, clientTransactionID, userID, basketID, paymentID, shippingAddressID)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(string)
 	}
 
-	return r0, r1
+	if rf, ok := ret.Get(2).(func(context.Context, string, string, string, string, string, string) error); ok {
+		r2 = rf(ctx, payphoneID, clientTransactionID, userID, basketID, paymentID, shippingAddressID)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // GeneratePayPhoneConfig provides a mock function with given fields: ctx, req

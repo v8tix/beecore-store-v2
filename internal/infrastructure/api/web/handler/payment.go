@@ -34,36 +34,28 @@ import (
 // AuthHandler's/UserHandler's existing precedent for composing a second
 // service).
 //
-// Reduced scope vs. the source repo, matching core/payment.Service's own
-// reduced scope:
-//   - No payment-record persistence against the downstream beecore-payments
-//     service (source's CreatePayment/FindPayment/UpdatePayment in
-//     cmd/web/payphone_handlers.go's PayPhoneCreatePayment/PayPhoneConfirm/
-//     PayPhoneCancel). Investigated during Task 19: this is a real, live
-//     call path in the source repo, not dead code — it's the app's own
-//     audit/idempotency record-keeping for a payment attempt, entirely
-//     separate from the PayPhone gateway call itself
-//     (resource.PayPhoneRemote, fully ported). But porting it coherently
-//     is entangled with the next gap below (ConfirmPayment's only sensible
-//     reason to persist a payment record is to then create the orders it
-//     paid for), so the two are one follow-up ticket, not two: a new
-//     port/resource.PaymentRecordRemote + adapter + service wiring,
-//     composing service.Payment with service.Order/service.Basket for the
-//     confirm-time orchestration. That's a vertical slice on the scale of
-//     Tasks 17/18 themselves — out of scope for Task 19/20 (composition-
-//     root wiring) — tracked here explicitly rather than silently dropped
-//     or half-ported (e.g. persisting records that never lead to an order).
-//   - No per-store order creation / basket checkout orchestration (source's
-//     PayPhoneConfirm handler's CreateOrder-per-store + CheckoutBasket +
-//     CreateBasket sequence) — see the gap above; a future caller can
-//     compose service.Payment with service.Order/service.Basket the same
-//     way this handler already composes service.Basket for
-//     ProcessPayment/Checkout and service.Address for Checkout.
+// One deliberate scope reduction remains vs. the source repo: no
+// payment-record persistence against the downstream beecore-payments
+// service (source's CreatePayment/FindPayment/UpdatePayment in
+// cmd/web/payphone_handlers.go's PayPhoneCreatePayment/PayPhoneConfirm/
+// PayPhoneCancel) — that's the app's own audit/idempotency record-keeping
+// for a payment attempt, entirely separate from the PayPhone gateway call
+// itself (resource.PayPhoneRemote, fully ported) and from the order/basket
+// orchestration below. Needs its own port/resource.PaymentRecordRemote +
+// adapter + service wiring; tracked here rather than silently dropped.
+//
+// ConfirmPayment's per-store order creation + basket checkout + fresh
+// basket (source: PayPhoneConfirm's CreateOrder-per-store + CheckoutBasket
+// + CreateBasket sequence) IS wired — core/payment.Service depends on
+// resource.OrderRemote/resource.BasketRemote directly for it (the same
+// "services depend on resources, not other services" rule core/auth.Login
+// already applies to resource.AddressRemote), not through
+// service.Order/service.Basket.
 //
 // The PayPhone gateway integration itself — ProcessPayment/ConfirmPayment/
 // CancelPayment against pay.payphonetodoesposible.com, and Checkout's
 // GeneratePayPhoneConfig-based widget config — is fully wired and preserves
-// source behavior; only this app's own downstream bookkeeping is deferred.
+// source behavior.
 type PaymentHandler struct {
 	PaymentService service.Payment
 
@@ -152,6 +144,15 @@ func (h *PaymentHandler) currentSession(r *http.Request) (sessionID string, sess
 	return sessionID, sess, true
 }
 
+// processPaymentRequest is ProcessPayment's AJAX request body — sent by
+// assets/static/js/payphone/checkout-payphone.js's createPaymentRecord once
+// the shopper picks a shipping address. Total is accepted but unused here;
+// the server always recomputes the authoritative total via BasketService.
+type processPaymentRequest struct {
+	ShippingAddressID string  `json:"shipping_address_id"`
+	Total             float64 `json:"total"`
+}
+
 // ProcessPayment mirrors the PayPhoneCreatePayment handler in the source
 // repo, reduced to its port/service.Payment call (see this type's doc
 // comment for what's out of scope): reads the session's basket ID,
@@ -163,7 +164,9 @@ func (h *PaymentHandler) currentSession(r *http.Request) (sessionID string, sess
 // repo's existing crypto-random ID generator, used the same way session
 // IDs are), and calls PaymentService.ProcessPayment. Responds with
 // domain.PaymentResult (confirm/cancel URLs) as JSON, for the checkout
-// page's AJAX caller.
+// page's AJAX caller. Also stashes the request's shipping address ID in
+// the session (see processPaymentRequest's doc comment) — ConfirmPayment
+// needs it later to build orders and check the basket out.
 func (h *PaymentHandler) ProcessPayment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -179,6 +182,28 @@ func (h *PaymentHandler) ProcessPayment(w http.ResponseWriter, r *http.Request) 
 	basketID, ok := getSessionString(session, keys.SessionBasketID)
 	if !ok {
 		serverError(h.Logger, w, r, keys.ErrSessionBasketIDRequired)
+		return
+	}
+
+	var body processPaymentRequest
+	if err := request.DecodeJSON(w, r, &body); err != nil {
+		badRequest(h.Logger, w, r, err)
+		return
+	}
+	if body.ShippingAddressID == "" {
+		badRequest(h.Logger, w, r, keys.ErrMissingShippingAddress)
+		return
+	}
+
+	// Stashed here (rather than resolved from the checkout form later) so
+	// ConfirmPayment — reached via PayPhone's own redirect back to this
+	// app, not a normal form submission — can still build one Order per
+	// store without the shopper's original request. Mirrors the source
+	// repo's PayPhoneCreatePayment handler's identical
+	// cookie.Values[keys.SessionShippingAddressID] assignment.
+	session.Values[keys.SessionShippingAddressID] = body.ShippingAddressID
+	if err := session.Save(r, w); err != nil {
+		serverError(h.Logger, w, r, err)
 		return
 	}
 
@@ -226,18 +251,59 @@ func (h *PaymentHandler) ProcessPayment(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// ConfirmPayment mirrors the PayPhoneConfirm handler in the source repo,
-// reduced to its port/service.Payment call (see this type's doc comment
-// for what's out of scope). Reads the "id"/"clientTransactionId" query
-// parameters PayPhone's own redirect back to this route carries, and
-// calls PaymentService.ConfirmPayment. A non-approved confirmation
-// (domain.PaymentConfirmation.ErrorMessage set) is treated as a failure,
-// same as the source's ErrPaymentNotApproved handling.
+// ConfirmPayment mirrors the PayPhoneConfirm handler in the source repo.
+// Reads the "id"/"clientTransactionId" query parameters PayPhone's own
+// redirect back to this route carries, resolves userID/basketID/
+// paymentID/shippingAddressID from the session, and calls
+// PaymentService.ConfirmPayment — which, only on an approved payment,
+// creates the resulting orders, checks the basket out, and opens a fresh
+// one (see port/service.Payment.ConfirmPayment's doc comment). A
+// non-approved confirmation (domain.PaymentConfirmation.ErrorMessage set)
+// is treated as a failure, same as the source's ErrPaymentNotApproved
+// handling — newBasketID is empty in that case, so the session's basket
+// state is deliberately left untouched, leaving the basket available to
+// retry.
 func (h *PaymentHandler) ConfirmPayment(w http.ResponseWriter, r *http.Request) {
 	payphoneID := httputils.GetQueryParam(r, "id")
 	clientTransactionID := httputils.GetQueryParam(r, keys.PayPhoneClientTransactionIDParam)
 
-	confirmation, err := h.PaymentService.ConfirmPayment(r.Context(), payphoneID, clientTransactionID)
+	_, sess, ok := h.currentSession(r)
+	if !ok || sess.UserID == "" {
+		serverError(h.Logger, w, r, keys.ErrSessionUserIDRequired)
+		return
+	}
+
+	session, err := h.Sessions.Get(r, h.SessionCookieName)
+	if err != nil {
+		serverError(h.Logger, w, r, err)
+		return
+	}
+
+	basketID, ok := getSessionString(session, keys.SessionBasketID)
+	if !ok {
+		serverError(h.Logger, w, r, keys.ErrSessionBasketIDRequired)
+		return
+	}
+
+	shippingAddressID, ok := getSessionString(session, keys.SessionShippingAddressID)
+	if !ok {
+		serverError(h.Logger, w, r, keys.ErrMissingShippingAddress)
+		return
+	}
+
+	// Mirrors the source handler's own fallback: the payment ID set by
+	// ProcessPayment should already be in session by the time PayPhone
+	// redirects back here, but fall back to the client transaction ID
+	// (the value PayPhone itself echoes back) if it's somehow missing
+	// rather than failing outright.
+	paymentID, ok := getSessionString(session, keys.SessionPaymentID)
+	if !ok {
+		paymentID = clientTransactionID
+	}
+
+	confirmation, newBasketID, err := h.PaymentService.ConfirmPayment(
+		r.Context(), payphoneID, clientTransactionID, sess.UserID, basketID, paymentID, shippingAddressID,
+	)
 	if err != nil {
 		serverError(h.Logger, w, r, err)
 		return
@@ -248,17 +314,18 @@ func (h *PaymentHandler) ConfirmPayment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	session, err := h.Sessions.Get(r, h.SessionCookieName)
-	if err != nil {
-		serverError(h.Logger, w, r, err)
-		return
-	}
-
 	// Mirrors the source's cookie.Values[keys.SessionPayPhoneConfirmation]
 	// assignment: only the transaction ID is kept in the browser cookie
 	// (full confirmation details would exceed its size limits), matching
 	// the source's own comment on that assignment.
 	session.Values[keys.SessionPayPhoneConfirmation] = confirmation.TransactionID
+	// The basket ConfirmPayment just checked out is done — point the
+	// session at the fresh one it opened so the shopper's cart is empty
+	// on their next visit instead of showing the order they just paid
+	// for. Losing this step is exactly what "the basket never
+	// reinitiates" looks like.
+	session.Values[keys.SessionBasketID] = newBasketID
+	session.Values[keys.SessionBasketItems] = 0
 	if err := session.Save(r, w); err != nil {
 		serverError(h.Logger, w, r, err)
 		return

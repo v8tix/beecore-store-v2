@@ -40,6 +40,19 @@ type Dependencies struct {
 	// methods, by GeneratePayPhoneConfig/GeneratePayPhoneConfigWithTransactionID
 	// — see this package's doc comment.
 	AuthRemote resource.AuthRemote
+
+	// OrderRemote and BasketRemote back ConfirmPayment's post-approval
+	// order-creation/basket-checkout/basket-recreate sequence (source
+	// repo: cmd/web/payphone_handlers.go's PayPhoneConfirm handler). Same
+	// "services depend on resources directly, not on each other's
+	// service" rule core/auth.Login already applies to
+	// resource.AddressRemote — see resource.OrderRemote's and
+	// resource.BasketRemote's own doc comments for why CreateOrder/
+	// CheckoutBasket were deliberately left unmirrored at the
+	// core/order.Service and core/basket.Service layers until this
+	// Payment-slice landed.
+	OrderRemote  resource.OrderRemote
+	BasketRemote resource.BasketRemote
 }
 
 type paymentService struct {
@@ -58,10 +71,66 @@ func (s *paymentService) ProcessPayment(ctx context.Context, req domain.PaymentR
 	return s.deps.PayPhoneRemote.ProcessPayment(ctx, req)
 }
 
-// ConfirmPayment mirrors Repository.ConfirmPayment exposed at the service
-// layer.
-func (s *paymentService) ConfirmPayment(ctx context.Context, payphoneID, clientTransactionID string) (domain.PaymentConfirmation, error) {
-	return s.deps.PayPhoneRemote.ConfirmPayment(ctx, payphoneID, clientTransactionID)
+// ConfirmPayment mirrors the source repo's PayPhoneConfirm handler
+// (cmd/web/payphone_handlers.go) at the service layer — see
+// port/service.Payment's doc comment for the full behavior. Confirms
+// against PayPhone first; the order/basket sequence only runs once that
+// confirmation reports the transaction approved. A non-approved result
+// (confirmation.ErrorMessage set — PayPhone reports this as ordinary
+// response data, not a Go error, see resource.PayPhoneRemote's doc
+// comment) returns with newBasketID empty and no order/basket side
+// effects, mirroring the source handler's own confirmation.Status !=
+// PayPhoneStatusApproved short circuit: it deliberately leaves the basket
+// untouched so the shopper can retry the same basket instead of losing
+// their cart on a declined card.
+func (s *paymentService) ConfirmPayment(
+	ctx context.Context,
+	payphoneID, clientTransactionID, userID, basketID, paymentID, shippingAddressID string,
+) (domain.PaymentConfirmation, string, error) {
+	confirmation, err := s.deps.PayPhoneRemote.ConfirmPayment(ctx, payphoneID, clientTransactionID)
+	if err != nil {
+		return domain.PaymentConfirmation{}, "", err
+	}
+	if confirmation.ErrorMessage != "" {
+		return confirmation, "", nil
+	}
+
+	at, err := s.deps.AuthRemote.GetAdminToken(ctx)
+	if err != nil {
+		return domain.PaymentConfirmation{}, "", err
+	}
+
+	financials, err := s.deps.BasketRemote.ComputeFinancials(ctx, basketID, at)
+	if err != nil {
+		return domain.PaymentConfirmation{}, "", err
+	}
+
+	// One order per store — mirrors the source repo's
+	// dto.ToCreateOrdersV1Req: each financial line item groups the
+	// basket's products by the store that sells them.
+	for _, storeFinancial := range financials.Items {
+		_, err := s.deps.OrderRemote.CreateOrder(ctx, domain.CreateOrderRequest{
+			UserID:            userID,
+			PaymentID:         paymentID,
+			BasketID:          basketID,
+			ShippingAddressID: shippingAddressID,
+			FinancialItem:     storeFinancial,
+		}, at)
+		if err != nil {
+			return domain.PaymentConfirmation{}, "", err
+		}
+	}
+
+	if err := s.deps.BasketRemote.CheckoutBasket(ctx, basketID, paymentID, shippingAddressID, at); err != nil {
+		return domain.PaymentConfirmation{}, "", err
+	}
+
+	newBasketID, err := s.deps.BasketRemote.CreateBasket(ctx, userID, at)
+	if err != nil {
+		return domain.PaymentConfirmation{}, "", err
+	}
+
+	return confirmation, newBasketID, nil
 }
 
 // CancelPayment mirrors Repository.CancelPayment exposed at the service

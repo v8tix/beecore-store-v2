@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/v8tix/beecore-auth-v3-mod/model"
 )
@@ -177,12 +176,7 @@ func (r Repository) FindPermissionsByRolesWithHierarchy(ctx context.Context, rol
 		JOIN effective_roles er ON er.id = rp.role_id
 	`
 
-	roleArray := &pgtype.TextArray{}
-	if err := roleArray.Set(roleIDs); err != nil {
-		return nil, fmt.Errorf("failed to convert role IDs to TEXT[]: %w", err)
-	}
-
-	rows, err := r.db.Query(ctx, query, roleArray)
+	rows, err := r.db.Query(ctx, query, roleIDs)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrQuery, err)
 	}

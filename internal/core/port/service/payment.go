@@ -25,10 +25,22 @@ type Payment interface {
 	// for PayPhone's JS widget.
 	ProcessPayment(ctx context.Context, req domain.PaymentRequest) (domain.PaymentResult, error)
 
-	// ConfirmPayment mirrors Repository.ConfirmPayment at the service
-	// layer — confirms a PayPhone transaction against PayPhone's own
-	// gateway (see resource.PayPhoneRemote's doc comment).
-	ConfirmPayment(ctx context.Context, payphoneID, clientTransactionID string) (domain.PaymentConfirmation, error)
+	// ConfirmPayment mirrors the source repo's PayPhoneConfirm handler at
+	// the service layer (cmd/web/payphone_handlers.go): confirms a
+	// PayPhone transaction against PayPhone's own gateway (see
+	// resource.PayPhoneRemote's doc comment), and — only once PayPhone
+	// reports the transaction approved — creates one Order per store from
+	// basketID's financial breakdown, checks basketID out against
+	// paymentID/shippingAddressID, and opens a fresh basket for userID so
+	// the shopper's cart is empty for their next visit. newBasketID is
+	// that fresh basket's ID, always non-empty when err is nil; the
+	// caller must persist it as the session's new basket ID (and reset
+	// its cached item count to 0) or the shopper's cart will keep showing
+	// the just-paid-for basket indefinitely.
+	ConfirmPayment(
+		ctx context.Context,
+		payphoneID, clientTransactionID, userID, basketID, paymentID, shippingAddressID string,
+	) (confirmation domain.PaymentConfirmation, newBasketID string, err error)
 
 	// CancelPayment mirrors Repository.CancelPayment at the service
 	// layer — a deliberate no-op, see resource.PayPhoneRemote's doc
