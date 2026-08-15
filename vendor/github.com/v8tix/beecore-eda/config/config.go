@@ -270,14 +270,6 @@ type SMTP struct {
 	init     OnceWithErr
 }
 
-type PayPal struct {
-	ClientID        string `json:"client_id,omitempty"`
-	Secret          string `json:"secret,omitempty"`
-	AuthURL         string `json:"auth_url,omitempty"`
-	OrdersURL       string `json:"orders_url,omitempty"`
-	OrdersReturnURL string `json:"orders_return_url,omitempty"`
-	OrdersCancelURL string `json:"orders_cancel_url,omitempty"`
-}
 type Payphone struct {
 	Token       string `json:"token,omitempty"`
 	StoreID     string `json:"store_id,omitempty"`
@@ -411,7 +403,6 @@ type Cfg struct {
 	CloudStorage       CloudStorage       `json:"cloud_storage"`
 	Session            Session            `json:"session"`
 	Worker             Worker             `json:"worker"`
-	PayPal             PayPal             `json:"paypal"`
 	Payphone           Payphone           `json:"payphone"`
 	BusinessParameters BusinessParameters `json:"business_parameters"`
 	Outbox             OutboxPartition    `json:"outbox"`
