@@ -334,14 +334,14 @@ github.com/teivah/onecontext
 ## explicit; go 1.26
 github.com/v8tix/beecore-auth-v3-mod/model
 github.com/v8tix/beecore-auth-v3-mod/repository
-# github.com/v8tix/beecore-eda v1.2.3
+# github.com/v8tix/beecore-eda v1.2.4
 ## explicit; go 1.26
 github.com/v8tix/beecore-eda/config
 github.com/v8tix/beecore-eda/smtp
 # github.com/v8tix/beecore-hash-mod v1.0.3
 ## explicit; go 1.26
 github.com/v8tix/beecore-hash-mod
-# github.com/v8tix/beecore-http v1.1.0
+# github.com/v8tix/beecore-http v1.1.1
 ## explicit; go 1.26
 github.com/v8tix/beecore-http/messages/baskets/v1
 github.com/v8tix/beecore-http/messages/common/v1
@@ -453,7 +453,7 @@ golang.org/x/crypto/md4
 golang.org/x/crypto/nacl/box
 golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/salsa20/salsa
-# golang.org/x/exp v0.0.0-20260811152304-ee035b5b010f
+# golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297
 ## explicit; go 1.25.0
 golang.org/x/exp/slices
 # golang.org/x/net v0.58.0
