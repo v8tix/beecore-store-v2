@@ -45,8 +45,10 @@ func (c *Client) retryPolicy() kawa.RetryPolicy {
 }
 
 // toDomainProduct maps a stores.GetProductV1Res wire value onto
-// domain.Product — a direct field-for-field copy, no renaming or
-// reshaping.
+// domain.Product — a direct field-for-field copy, except CategoryID/
+// CategoryName, which the wire type denormalizes from the taxonomy tree
+// (see beecore-stores' taxonomy module) and which this function just
+// passes through unchanged.
 func toDomainProduct(p stores.GetProductV1Res) domain.Product {
 	return domain.Product{
 		ID:                  p.ID,
@@ -55,7 +57,8 @@ func toDomainProduct(p stores.GetProductV1Res) domain.Product {
 		Description:         p.Description,
 		SKU:                 p.SKU,
 		Price:               p.Price,
-		Category:            p.CategoryID,
+		CategoryID:          p.CategoryID,
+		CategoryName:        p.CategoryName,
 		ImgURL:              p.ImgURL,
 		VideoURL:            p.VideoURL,
 		Status:              p.Status,
