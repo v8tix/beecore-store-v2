@@ -13,7 +13,8 @@ type Product struct {
 	Description         string
 	SKU                 string
 	Price               float64
-	Category            string
+	CategoryID          string
+	CategoryName        string
 	ImgURL              string
 	VideoURL            string
 	Status              string
