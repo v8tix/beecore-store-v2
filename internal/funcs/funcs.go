@@ -6,12 +6,12 @@ import (
 	"html/template"
 	"math"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
-	"golang.org/x/exp/slices"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
