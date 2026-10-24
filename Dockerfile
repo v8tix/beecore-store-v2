@@ -1,4 +1,4 @@
-FROM golang:1.26-alpine3.23 AS builder
+FROM golang:1.27-alpine3.23 AS builder
 WORKDIR /home/src
 COPY . .
 RUN GOPROXY='https://proxy.golang.org,direct' CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -o=./store-server ./cmd/web

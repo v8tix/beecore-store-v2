@@ -1,6 +1,8 @@
+// Package common holds wire-message DTOs shared across multiple microservices' HTTP APIs.
 package common
 
 type (
+	// ShippingAddressV1 is a shipping address as carried on the wire.
 	ShippingAddressV1 struct {
 		Country         string `json:"country,omitempty"`
 		State           string `json:"state,omitempty"`
@@ -11,6 +13,7 @@ type (
 		Numeration      string `json:"numeration,omitempty"`
 		Phone           string `json:"phone,omitempty"`
 	}
+	// StoreV1 is a store snapshot as carried on the wire.
 	StoreV1 struct {
 		ID    string `json:"id,omitempty"`
 		Owner string `json:"owner,omitempty"`
@@ -18,6 +21,7 @@ type (
 		Email string `json:"email,omitempty"`
 	}
 
+	// ProductV1 is a product snapshot as carried on the wire.
 	ProductV1 struct {
 		ID          string  `json:"id,omitempty"`
 		Name        string  `json:"name,omitempty"`
@@ -28,6 +32,7 @@ type (
 		Quantity    int     `json:"quantity,omitempty"`
 	}
 
+	// FinancialItemV1 is a store's financial breakdown within an order, as carried on the wire.
 	FinancialItemV1 struct {
 		Store          StoreV1     `json:"store,omitempty"`
 		Products       []ProductV1 `json:"products,omitempty"`

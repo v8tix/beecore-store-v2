@@ -55,7 +55,7 @@ func toDomainProduct(p stores.GetProductV1Res) domain.Product {
 		Description:         p.Description,
 		SKU:                 p.SKU,
 		Price:               p.Price,
-		Category:            p.Category,
+		Category:            p.CategoryID,
 		ImgURL:              p.ImgURL,
 		VideoURL:            p.VideoURL,
 		Status:              p.Status,
