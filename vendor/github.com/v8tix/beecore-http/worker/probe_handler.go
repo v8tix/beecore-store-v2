@@ -31,6 +31,7 @@ func GracefulShutdownProbeHandler(cfg *Cfg, logger *slog.Logger) http.HandlerFun
 				select {
 				case <-ctx.Done():
 					logger.Info("Work cancelled", "trace_id", traceID, "reason", ctx.Err())
+
 					return
 				default:
 					logger.Info("Working", "trace_id", traceID, "iteration", i)
@@ -43,6 +44,11 @@ func GracefulShutdownProbeHandler(cfg *Cfg, logger *slog.Logger) http.HandlerFun
 		w1 := New(cfg, jobs)
 
 		for key := range jobs {
+			// The probe deliberately outlives this request: it starts a 120s background
+			// job to verify graceful shutdown, so it can't derive from the request's
+			// own (much shorter-lived) context.
+			//
+			//nolint:contextcheck
 			go func(k string) {
 				ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 				defer cancel()
@@ -57,8 +63,10 @@ func GracefulShutdownProbeHandler(cfg *Cfg, logger *slog.Logger) http.HandlerFun
 		resp, err := json.MarshalIndent(map[string]string{"status": "available"}, "", "\t")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
+
 		resp = append(resp, '\n')
 
 		w.Header().Set("Content-Type", "application/json")

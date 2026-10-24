@@ -13,6 +13,8 @@ import (
 // JobFunc defines a function that can execute work for a specific job.
 type JobFunc func(ctx context.Context, traceID string, payload any, logger *slog.Logger)
 
+// Cfg holds the shared synchronization primitives a Worker uses to track
+// and wait for its running jobs.
 type Cfg struct {
 	Wg *sync.WaitGroup
 	Mu *sync.Mutex
@@ -25,11 +27,13 @@ type Worker struct {
 	running  map[string]context.CancelFunc
 }
 
+// NewWorkerCfg builds a Cfg from the given WaitGroup and Mutex.
 func NewWorkerCfg(wg *sync.WaitGroup, mu *sync.Mutex) *Cfg {
 	cfg := Cfg{
 		Wg: wg,
 		Mu: mu,
 	}
+
 	return &cfg
 }
 
@@ -52,7 +56,6 @@ func (w *Worker) Running() int {
 
 // Shutdown waits for all jobs to complete before it returns.
 func (w *Worker) Shutdown(ctx context.Context) error {
-
 	// Call the cancel function for all running goroutines.
 	w.cfg.Mu.Lock()
 	{
@@ -65,6 +68,7 @@ func (w *Worker) Shutdown(ctx context.Context) error {
 	// Launch a goroutine to wait for all the worker goroutines
 	// to complete their work.
 	ch := make(chan struct{})
+
 	go func() {
 		w.cfg.Wg.Wait()
 		close(ch)
@@ -76,13 +80,15 @@ func (w *Worker) Shutdown(ctx context.Context) error {
 	case <-ch:
 		return nil
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("shutdown: %w", ctx.Err())
 	}
 }
 
 // Start lookups a job by key and launches a goroutine to perform the work. A
 // work key is returned so the caller can cancel work early.
-func (w *Worker) Start(ctx context.Context, traceID string, jobKey string, payload any, logger *slog.Logger) (string, error) {
+func (w *Worker) Start(
+	ctx context.Context, traceID string, jobKey string, payload any, logger *slog.Logger,
+) (string, error) {
 	w.cfg.Mu.Lock()
 	defer w.cfg.Mu.Unlock()
 
@@ -101,9 +107,11 @@ func (w *Worker) Start(ctx context.Context, traceID string, jobKey string, paylo
 
 	// Launch a goroutine to perform the work.
 	w.cfg.Wg.Add(1)
+
 	go func() {
 		defer w.cfg.Wg.Done()
 		defer func() { cancel(); w.removeWork(workKey) }()
+
 		f(ctx, traceID, payload, logger)
 	}()
 

@@ -60,7 +60,7 @@ func (a *app) serveHTTP(cfg *config.Cfg) error {
 		return fmt.Errorf("shutdown: %w", err)
 	}
 
-	cfg.AuthService.Stop()
+	cfg.Stop()
 	a.logger.Info("serveHTTP", "stopped server on", fmt.Sprintf("http://localhost%s", srv.Addr))
 
 	a.wg.Wait()

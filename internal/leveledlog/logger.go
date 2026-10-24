@@ -70,20 +70,20 @@ func NewJSONLogger(out io.Writer, minLevel Level) *Logger {
 
 func (l *Logger) Info(format string, v ...any) {
 	message := fmt.Sprintf(format, v...)
-	l.print(LevelInfo, message, nil)
+	_, _ = l.print(LevelInfo, message, nil)
 }
 
 func (l *Logger) Warning(format string, v ...any) {
 	message := fmt.Sprintf(format, v...)
-	l.print(LevelWarning, message, nil)
+	_, _ = l.print(LevelWarning, message, nil)
 }
 
 func (l *Logger) Error(err error, trace []byte) {
-	l.print(LevelError, err.Error(), trace)
+	_, _ = l.print(LevelError, err.Error(), trace)
 }
 
 func (l *Logger) Fatal(err error, trace []byte) {
-	l.print(LevelFatal, err.Error(), trace)
+	_, _ = l.print(LevelFatal, err.Error(), trace)
 	os.Exit(1)
 }
 

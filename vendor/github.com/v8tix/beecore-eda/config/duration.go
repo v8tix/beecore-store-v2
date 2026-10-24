@@ -13,7 +13,9 @@ import (
 // ErrInvalidDurationFormat is returned when a Duration's JSON value can't be parsed.
 var ErrInvalidDurationFormat = errors.New("invalid duration format")
 
-var humanDurationPattern = regexp.MustCompile(`(?i)^(\d+)\s*(millisecond|milliseconds|second|seconds|minute|minutes|hour|hours|day|days)$`)
+var humanDurationPattern = regexp.MustCompile(
+	`(?i)^(\d+)\s*(millisecond|milliseconds|second|seconds|minute|minutes|hour|hours|day|days)$`,
+)
 
 // Duration is a JSON-friendly time.Duration. It accepts either a human-readable
 // "<N> <unit>" string (e.g. "72 hours", "30 days", "250 milliseconds") or a
@@ -61,7 +63,12 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON implements json.Marshaler.
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.d.String())
+	b, err := json.Marshal(d.d.String())
+	if err != nil {
+		return nil, fmt.Errorf("marshaling duration: %w", err)
+	}
+
+	return b, nil
 }
 
 func parseDurationString(s string) (time.Duration, error) {

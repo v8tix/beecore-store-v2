@@ -1,3 +1,4 @@
+// Package users holds the wire-message DTOs for the users microservice's HTTP API.
 package users
 
 import (
@@ -7,6 +8,7 @@ import (
 )
 
 type (
+	// Address is the wire representation of a user address.
 	Address struct {
 		ID              string    `json:"id,omitempty"`
 		UserID          string    `json:"user_id,omitempty"`
@@ -25,6 +27,7 @@ type (
 )
 
 type (
+	// RegisterAddressV1Req is the request to register a new address for a user.
 	RegisterAddressV1Req struct {
 		Type            string `json:"type,omitempty"`
 		Country         string `json:"country,omitempty"`
@@ -37,17 +40,22 @@ type (
 		Phone           string `json:"phone,omitempty"`
 	}
 
+	// RegisterAddressV1Res is the response to RegisterAddressV1Req.
 	RegisterAddressV1Res struct {
 		ID string `json:"address_id,omitempty"`
 	}
 
+	// RegisterAddressEnvV1Res envelopes RegisterAddressV1Res.
 	RegisterAddressEnvV1Res struct {
 		Address RegisterAddressV1Res `json:"address,omitempty"`
 	}
+
+	// GetAddressesV1EnvV1Res envelopes a user's list of addresses.
 	GetAddressesV1EnvV1Res struct {
 		Addresses []Address `json:"addresses,omitempty"`
 	}
 
+	// UpdateAddressV1Req is the request to update an existing address.
 	UpdateAddressV1Req struct {
 		Type            string `json:"type,omitempty"`
 		Country         string `json:"country,omitempty"`
@@ -61,8 +69,10 @@ type (
 	}
 )
 
+// Req marks RegisterAddressV1Req as a request payload.
 func (r RegisterAddressV1Req) Req() {}
 
+// Validate checks that RegisterAddressV1Req's fields are present.
 func (r RegisterAddressV1Req) Validate(v *validator.Validator) {
 	v.Check(len(r.Type) != 0, "type", "must be provided")
 	v.Check(len(r.Country) != 0, "country", "must be provided")
@@ -75,12 +85,16 @@ func (r RegisterAddressV1Req) Validate(v *validator.Validator) {
 	v.Check(len(r.Phone) != 0, "phone", "must be provided")
 }
 
+// Res marks RegisterAddressEnvV1Res as a response payload.
 func (r RegisterAddressEnvV1Res) Res() {}
 
+// Res marks GetAddressesV1EnvV1Res as a response payload.
 func (g GetAddressesV1EnvV1Res) Res() {}
 
+// Req marks UpdateAddressV1Req as a request payload.
 func (u UpdateAddressV1Req) Req() {}
 
+// Validate checks that UpdateAddressV1Req's fields are present.
 func (u UpdateAddressV1Req) Validate(v *validator.Validator) {
 	v.Check(len(u.Type) != 0, "type", "must be provided")
 	v.Check(len(u.Country) != 0, "country", "must be provided")

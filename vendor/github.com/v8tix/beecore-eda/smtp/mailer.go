@@ -41,7 +41,7 @@ func NewMailer(host, username, password, sender string, port int) (*Mailer, erro
 		mail.WithPassword(password),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrMailClientCreationFailed, err)
+		return nil, fmt.Errorf("%w: %w", ErrMailClientCreationFailed, err)
 	}
 
 	mailer := &Mailer{
@@ -57,11 +57,11 @@ func (m *Mailer) Send(recipient, subject, plainBody, htmlBody string) error {
 	msg := mail.NewMsg()
 
 	if err := msg.To(recipient); err != nil {
-		return fmt.Errorf("%w: %v", ErrRecipientSetFailed, err)
+		return fmt.Errorf("%w: %w", ErrRecipientSetFailed, err)
 	}
 
 	if err := msg.From(m.from); err != nil {
-		return fmt.Errorf("%w: %v", ErrSenderSetFailed, err)
+		return fmt.Errorf("%w: %w", ErrSenderSetFailed, err)
 	}
 
 	msg.Subject(subject)
@@ -72,7 +72,7 @@ func (m *Mailer) Send(recipient, subject, plainBody, htmlBody string) error {
 	defer m.mu.Unlock()
 
 	if err := m.client.DialAndSend(msg); err != nil {
-		return fmt.Errorf("%w: %v", ErrEmailSendFailed, err)
+		return fmt.Errorf("%w: %w", ErrEmailSendFailed, err)
 	}
 
 	return nil

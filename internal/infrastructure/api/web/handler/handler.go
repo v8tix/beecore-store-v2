@@ -60,8 +60,8 @@ func newTemplateData(r *http.Request) map[string]any {
 	}
 }
 
-// SetAuthenticatedUser, GetAuthenticatedUser and NewTemplateData are this
-// package's exported entry points for the composition root
+// SetAuthenticatedUser is one of this package's exported entry points for
+// the composition root, alongside GetAuthenticatedUser and NewTemplateData
 // (infrastructure/api/web, plan Task 19), which has no vertical-slice
 // package of its own: its authenticate/requireAuthenticatedUser middleware
 // populates the request context via SetAuthenticatedUser (mirroring
