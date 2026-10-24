@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -58,6 +59,7 @@ func NewInMemoryTokenCache() *InMemoryTokenCache {
 	return &InMemoryTokenCache{items: make(map[string]inMemoryEntry)}
 }
 
+// Get implements TokenCache.
 func (c *InMemoryTokenCache) Get(_ context.Context, key string) (string, time.Time, bool, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -70,6 +72,7 @@ func (c *InMemoryTokenCache) Get(_ context.Context, key string) (string, time.Ti
 	return entry.value, entry.expiry, true, nil
 }
 
+// Put implements TokenCache.
 func (c *InMemoryTokenCache) Put(_ context.Context, key, value string, ttl time.Duration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -79,6 +82,7 @@ func (c *InMemoryTokenCache) Put(_ context.Context, key, value string, ttl time.
 	return nil
 }
 
+// PutIfAbsent implements TokenCache.
 func (c *InMemoryTokenCache) PutIfAbsent(_ context.Context, key, value string, ttl time.Duration) (bool, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -92,6 +96,7 @@ func (c *InMemoryTokenCache) PutIfAbsent(_ context.Context, key, value string, t
 	return true, nil
 }
 
+// Remove implements TokenCache.
 func (c *InMemoryTokenCache) Remove(_ context.Context, key string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -118,6 +123,7 @@ func NewRedisTokenCache(client *redis.Client) *RedisTokenCache {
 	return &RedisTokenCache{client: client, prefix: "authcache:"}
 }
 
+// Get implements TokenCache.
 func (c *RedisTokenCache) Get(ctx context.Context, key string) (string, time.Time, bool, error) {
 	fullKey := c.prefix + key
 
@@ -125,8 +131,9 @@ func (c *RedisTokenCache) Get(ctx context.Context, key string) (string, time.Tim
 	if errors.Is(err, redis.Nil) {
 		return "", time.Time{}, false, nil
 	}
+
 	if err != nil {
-		return "", time.Time{}, false, err
+		return "", time.Time{}, false, fmt.Errorf("getting redis key: %w", err)
 	}
 
 	// A second round trip, not a pipeline: the tiny race window (the key
@@ -135,8 +142,9 @@ func (c *RedisTokenCache) Get(ctx context.Context, key string) (string, time.Tim
 	// as if we'd read it a moment later.
 	ttl, err := c.client.PTTL(ctx, fullKey).Result()
 	if err != nil {
-		return "", time.Time{}, false, err
+		return "", time.Time{}, false, fmt.Errorf("getting redis key TTL: %w", err)
 	}
+
 	if ttl <= 0 {
 		// -2 (key gone) or -1 (no TTL set, which shouldn't happen — every
 		// PutIfAbsent sets one) — either way, treat as a miss.
@@ -146,19 +154,30 @@ func (c *RedisTokenCache) Get(ctx context.Context, key string) (string, time.Tim
 	return val, time.Now().Add(ttl), true, nil
 }
 
+// Put implements TokenCache.
 func (c *RedisTokenCache) Put(ctx context.Context, key, value string, ttl time.Duration) error {
-	return c.client.Set(ctx, c.prefix+key, value, ttl).Err()
+	if err := c.client.Set(ctx, c.prefix+key, value, ttl).Err(); err != nil {
+		return fmt.Errorf("setting redis key: %w", err)
+	}
+
+	return nil
 }
 
+// PutIfAbsent implements TokenCache.
 func (c *RedisTokenCache) PutIfAbsent(ctx context.Context, key, value string, ttl time.Duration) (bool, error) {
 	stored, err := c.client.SetNX(ctx, c.prefix+key, value, ttl).Result()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("setting redis key if absent: %w", err)
 	}
 
 	return stored, nil
 }
 
+// Remove implements TokenCache.
 func (c *RedisTokenCache) Remove(ctx context.Context, key string) error {
-	return c.client.Del(ctx, c.prefix+key).Err()
+	if err := c.client.Del(ctx, c.prefix+key).Err(); err != nil {
+		return fmt.Errorf("deleting redis key: %w", err)
+	}
+
+	return nil
 }

@@ -1,3 +1,7 @@
+// Package config holds this fleet's shared service configuration: the
+// top-level Cfg struct and its lazily initialized backing clients
+// (Postgres, Redis, NATS, KMS, cloud storage, SMTP), plus the auth-token
+// cache and session/cookie configuration used across microservices.
 package config
 
 import (
@@ -59,7 +63,10 @@ type serviceTokenCache struct {
 // which is available in a unit test.
 type generateTokenFunc func(s *AuthService, email, password, app string, duration time.Duration) (string, error)
 
-var generateAuthToken generateTokenFunc = func(s *AuthService, email, password, app string, duration time.Duration) (string, error) {
+//nolint:gochecknoglobals // deliberate test seam, swapped via SetGenerateAuthTokenFunc; see doc comment above
+var generateAuthToken generateTokenFunc = func(
+	s *AuthService, email, password, app string, duration time.Duration,
+) (string, error) {
 	return s.GenerateAuthenticationToken(email, password, app, duration)
 }
 
@@ -163,7 +170,12 @@ func (s *AuthService) GetRefreshTokenTTL() time.Duration {
 // repository.Repository method of the same name, hiding the ttl parameter
 // behind config so callers don't need to know about session.max_age.
 func (s *AuthService) GenerateRefreshToken(userID string) (string, error) {
-	return s.Repository.GenerateRefreshToken(userID, s.GetRefreshTokenTTL())
+	token, err := s.Repository.GenerateRefreshToken(userID, s.GetRefreshTokenTTL())
+	if err != nil {
+		return "", fmt.Errorf("generating refresh token: %w", err)
+	}
+
+	return token, nil
 }
 
 // GetOrGenerateAuthenticationToken returns a cached JWT for (email, app) while
@@ -177,7 +189,9 @@ func (s *AuthService) GenerateRefreshToken(userID string) (string, error) {
 // still returned immediately, but also triggers a non-blocking background
 // refresh (see refreshInBackground) so a later caller is unlikely to hit the
 // synchronous miss path right at the moment of expiry.
-func (s *AuthService) GetOrGenerateAuthenticationToken(ctx context.Context, email, password, app string) (string, error) {
+func (s *AuthService) GetOrGenerateAuthenticationToken(
+	ctx context.Context, email, password, app string,
+) (string, error) {
 	duration, err := s.jwt.GetDuration()
 	if err != nil {
 		return "", err
@@ -190,8 +204,9 @@ func (s *AuthService) GetOrGenerateAuthenticationToken(ctx context.Context, emai
 
 	token, expiry, ok, err := s.tokens.store.Get(ctx, key)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("getting cached auth token: %w", err)
 	}
+
 	if ok {
 		if time.Until(expiry) <= tokenRefreshAheadWindow {
 			s.refreshInBackground(ctx, key, email, password, app, duration)
@@ -208,7 +223,9 @@ func (s *AuthService) GetOrGenerateAuthenticationToken(ctx context.Context, emai
 // singleflight key refreshAndWait uses — so if the cache entry fully expires
 // while this is still in flight, the caller that hits the miss path joins
 // this same call instead of starting a redundant second generation.
-func (s *AuthService) refreshInBackground(ctx context.Context, key, email, password, app string, duration time.Duration) {
+func (s *AuthService) refreshInBackground(
+	ctx context.Context, key, email, password, app string, duration time.Duration,
+) {
 	// Detached from the triggering request's context/deadline — this refresh
 	// is meant to outlive that request, not get canceled when it finishes.
 	detached := context.WithoutCancel(ctx)
@@ -221,7 +238,7 @@ func (s *AuthService) refreshInBackground(ctx context.Context, key, email, passw
 			// this since we decided to trigger — if it's no longer within
 			// the refresh-ahead window, there's nothing left to do here.
 			if token, expiry, ok, err := s.tokens.store.Get(detached, key); err != nil {
-				return "", err
+				return "", fmt.Errorf("getting cached auth token: %w", err)
 			} else if ok && time.Until(expiry) > tokenRefreshAheadWindow {
 				return token, nil
 			}
@@ -238,6 +255,8 @@ func (s *AuthService) refreshInBackground(ctx context.Context, key, email, passw
 // without this, a test could return (and restore its generateAuthToken fake)
 // while the goroutine it triggered is still pending, which then runs later
 // against whatever fake a *different* test has since installed.
+//
+//nolint:gochecknoglobals // deliberate test seam, swapped via SetAfterBackgroundRefreshFunc; see doc comment above
 var afterBackgroundRefresh = func() {}
 
 // SetAfterBackgroundRefreshFunc overrides afterBackgroundRefresh for tests
@@ -255,14 +274,16 @@ func SetAfterBackgroundRefreshFunc(fn func()) func() {
 // refreshAndWait is the blocking miss path: the caller has no usable cached
 // token at all (never cached, or its entry has fully expired) and must wait
 // for a fresh one.
-func (s *AuthService) refreshAndWait(ctx context.Context, key, email, password, app string, duration time.Duration) (string, error) {
+func (s *AuthService) refreshAndWait(
+	ctx context.Context, key, email, password, app string, duration time.Duration,
+) (string, error) {
 	v, err, _ := s.tokens.group.Do(key, func() (any, error) {
 		// Re-check after entering the in-process singleflight critical
 		// section — another goroutine here (or another process, if the
 		// store is shared, or an in-flight refreshInBackground call this one
 		// just joined) may have already populated it while we waited.
 		if token, _, ok, err := s.tokens.store.Get(ctx, key); err != nil {
-			return "", err
+			return "", fmt.Errorf("getting cached auth token: %w", err)
 		} else if ok {
 			return token, nil
 		}
@@ -270,7 +291,7 @@ func (s *AuthService) refreshAndWait(ctx context.Context, key, email, password, 
 		return s.regenerateAndCache(ctx, key, email, password, app, duration)
 	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("refreshing auth token: %w", err)
 	}
 
 	return v.(string), nil
@@ -282,7 +303,9 @@ func (s *AuthService) refreshAndWait(ctx context.Context, key, email, password, 
 // there's no valid entry yet and avoiding duplicate concurrent generation
 // across processes actually matters, since it'd otherwise block N callers
 // on N redundant bcrypt+KMS round trips.
-func (s *AuthService) regenerateAndCache(ctx context.Context, key, email, password, app string, duration time.Duration) (string, error) {
+func (s *AuthService) regenerateAndCache(
+	ctx context.Context, key, email, password, app string, duration time.Duration,
+) (string, error) {
 	token, err := generateAuthToken(s, email, password, app, duration)
 	if err != nil {
 		return "", err
@@ -290,8 +313,9 @@ func (s *AuthService) regenerateAndCache(ctx context.Context, key, email, passwo
 
 	stored, err := s.tokens.store.PutIfAbsent(ctx, key, token, computeTTL(duration))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("caching auth token: %w", err)
 	}
+
 	if !stored {
 		// Another process's PutIfAbsent won the race — prefer its value over
 		// ours so the fleet converges on one cached token per key, not one
@@ -314,14 +338,16 @@ func (s *AuthService) regenerateAndCache(ctx context.Context, key, email, passwo
 // (whichever Put lands last wins) — accepted, since this only ever runs in
 // the background and never blocks a caller, unlike the miss path above
 // where avoiding duplicate work matters more.
-func (s *AuthService) regenerateAndReplace(ctx context.Context, key, email, password, app string, duration time.Duration) (string, error) {
+func (s *AuthService) regenerateAndReplace(
+	ctx context.Context, key, email, password, app string, duration time.Duration,
+) (string, error) {
 	token, err := generateAuthToken(s, email, password, app, duration)
 	if err != nil {
 		return "", err
 	}
 
 	if err := s.tokens.store.Put(ctx, key, token, computeTTL(duration)); err != nil {
-		return "", err
+		return "", fmt.Errorf("replacing cached auth token: %w", err)
 	}
 
 	return token, nil
@@ -338,6 +364,8 @@ func computeTTL(duration time.Duration) time.Duration {
 	return duration
 }
 
+// AuthenticateSVC generates a fresh authentication token for the given
+// credentials, using the app's configured token expiration.
 func (s *AuthService) AuthenticateSVC(email, password string) (string, error) {
 	duration, err := s.jwt.GetDuration()
 	if err != nil {
@@ -346,12 +374,14 @@ func (s *AuthService) AuthenticateSVC(email, password string) (string, error) {
 
 	token, err := s.GenerateAuthenticationToken(email, password, s.app.Name, duration)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrAuthTokenGenerationFailed, err)
+		return "", fmt.Errorf("%w: %w", ErrAuthTokenGenerationFailed, err)
 	}
 
 	return token, nil
 }
 
+// GetPermissionsSVC returns a user's permissions, preferring a Redis cache
+// entry over a database lookup.
 func (s *AuthService) GetPermissionsSVC(ctx context.Context, userID string) ([]model.Permission, error) {
 	cacheKeyStr := "permissions:user:" + strings.ToLower(userID)
 
@@ -381,7 +411,7 @@ func (s *AuthService) GetPermissionsSVC(ctx context.Context, userID string) ([]m
 
 	permissions, dbErr := s.FindPermissionsByUserID(ctx, userID)
 	if dbErr != nil {
-		return nil, fmt.Errorf("%w: %v", ErrPermissionsFindFailed, dbErr)
+		return nil, fmt.Errorf("%w: %w", ErrPermissionsFindFailed, dbErr)
 	}
 
 	data, marshalErr := json.Marshal(permissions)
@@ -399,7 +429,10 @@ func (s *AuthService) GetPermissionsSVC(ctx context.Context, userID string) ([]m
 	return permissions, nil
 }
 
-func (s *AuthService) GetTokenByUserIDAndScopeSVC(ctx context.Context, userID string, scope repository.TokenScope) (*model.Token, error) {
+// GetTokenByUserIDAndScopeSVC looks up a user's token for the given scope.
+func (s *AuthService) GetTokenByUserIDAndScopeSVC(
+	ctx context.Context, userID string, scope repository.TokenScope,
+) (*model.Token, error) {
 	token, err := s.FindTokenByUserIDAndScope(ctx, userID, scope)
 	if err != nil {
 		// %w (not %v) on both: middleware.validateTokenStatus does
@@ -412,6 +445,7 @@ func (s *AuthService) GetTokenByUserIDAndScopeSVC(ctx context.Context, userID st
 	return token, nil
 }
 
+// Stop cancels the background pg_notify role-change listener.
 func (s *AuthService) Stop() {
 	s.cancel()
 	s.logger.Info("Stopping pg_notify listener...")
@@ -458,7 +492,7 @@ func (s *AuthService) setupRoleChangeListener(ctx context.Context) (*pgxpool.Con
 	if err != nil {
 		s.logger.Error("listenForRoleChanges: Failed to acquire connection", "error", err)
 
-		return nil, fmt.Errorf("%w: %v", ErrDatabaseConnectionAcquireFailed, err)
+		return nil, fmt.Errorf("%w: %w", ErrDatabaseConnectionAcquireFailed, err)
 	}
 
 	_, err = conn.Exec(ctx, "LISTEN role_changes;")
@@ -466,7 +500,7 @@ func (s *AuthService) setupRoleChangeListener(ctx context.Context) (*pgxpool.Con
 		s.logger.Error("listenForRoleChanges: Failed to LISTEN", "error", err)
 		conn.Release()
 
-		return nil, fmt.Errorf("%w: %v", ErrDatabaseListenCommandFailed, err)
+		return nil, fmt.Errorf("%w: %w", ErrDatabaseListenCommandFailed, err)
 	}
 
 	return conn, nil
@@ -475,7 +509,7 @@ func (s *AuthService) setupRoleChangeListener(ctx context.Context) (*pgxpool.Con
 func (s *AuthService) handleRoleChangeNotification(ctx context.Context, conn *pgxpool.Conn) error {
 	notification, err := conn.Conn().WaitForNotification(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("waiting for role-change notification: %w", err)
 	}
 
 	roleID := strings.ToLower(notification.Payload)

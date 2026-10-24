@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -61,11 +62,15 @@ var (
 	ErrEmailSendFailed = errors.New("email send failed")
 )
 
+// OnceWithErr runs a function exactly once and remembers its error for
+// subsequent calls, unlike sync.Once which has no way to report failure.
 type OnceWithErr struct {
 	once sync.Once
 	err  error
 }
 
+// Do runs fn on the first call and returns its error; later calls return the
+// same error without running fn again.
 func (o *OnceWithErr) Do(fn func() error) error {
 	o.once.Do(func() {
 		o.err = fn()
@@ -74,8 +79,10 @@ func (o *OnceWithErr) Do(fn func() error) error {
 	return o.err
 }
 
+// Service identifies a configurable backing service (logger, JWT, Postgres, ...).
 type Service string
 
+// Known Service values, used to key per-service config lookups and errors.
 const (
 	ServiceLogger       Service = "logger"
 	ServiceJWT          Service = "jwt"
@@ -94,18 +101,35 @@ const (
 	ServiceSessionStore Service = "session store"
 )
 
+// clampToInt32 converts a pool-size setting to int32, clamping to
+// math.MaxInt32 instead of silently wrapping on overflow.
+func clampToInt32(n int) int32 {
+	if n > math.MaxInt32 {
+		return math.MaxInt32
+	}
+
+	if n < 0 {
+		return 0
+	}
+
+	return int32(n)
+}
+
 // parseDuration parses a duration string, returning defaultVal on empty or error.
 func parseDuration(s string, defaultVal time.Duration) time.Duration {
 	if s == "" {
 		return defaultVal
 	}
+
 	d, err := time.ParseDuration(s)
 	if err != nil {
 		return defaultVal
 	}
+
 	return d
 }
 
+// App holds application-level configuration (branding, activation tokens).
 type App struct {
 	Name                      string   `json:"name,omitempty"`
 	SupportEmail              string   `json:"support_email,omitempty"`
@@ -133,7 +157,8 @@ type Log struct {
 // JWT represents JWT configuration settings.
 type JWT struct {
 	ExpirationDuration string `json:"expiration_duration,omitempty"` // e.g., "24h", "15m"
-	RefreshInterval    string `json:"refresh_interval,omitempty"`    // e.g., "24h" — how often a session's access token is refreshed
+	// RefreshInterval is how often a session's access token is refreshed, e.g. "24h".
+	RefreshInterval string `json:"refresh_interval,omitempty"`
 }
 
 // GetDuration parses and returns the expiration duration.
@@ -142,7 +167,12 @@ func (j *JWT) GetDuration() (time.Duration, error) {
 		return 24 * time.Hour, nil // Default to 72 hours
 	}
 
-	return time.ParseDuration(j.ExpirationDuration)
+	d, err := time.ParseDuration(j.ExpirationDuration)
+	if err != nil {
+		return 0, fmt.Errorf("parsing JWT expiration duration: %w", err)
+	}
+
+	return d, nil
 }
 
 // GetRefreshInterval parses and returns the session refresh interval.
@@ -151,22 +181,31 @@ func (j *JWT) GetRefreshInterval() (time.Duration, error) {
 		return 24 * time.Hour, nil
 	}
 
-	return time.ParseDuration(j.RefreshInterval)
+	d, err := time.ParseDuration(j.RefreshInterval)
+	if err != nil {
+		return 0, fmt.Errorf("parsing JWT refresh interval: %w", err)
+	}
+
+	return d, nil
 }
 
+// Cors holds CORS configuration.
 type Cors struct {
 	TrustedOrigins []string `json:"trusted_origins,omitempty"`
 }
 
+// Pagination holds default pagination settings.
 type Pagination struct {
 	PerPage int `json:"per_page,omitempty"`
 }
 
+// UserRoles holds the well-known role IDs for store admins and buyers.
 type UserRoles struct {
 	StoreAdminID string `json:"store_admin_id,omitempty"`
 	StoreBuyerID string `json:"store_buyer_id,omitempty"`
 }
 
+// Web holds HTTP server configuration (ports, CORS, timeouts, shared client).
 type Web struct {
 	Host              string `json:"host,omitempty"`
 	AdminPort         string `json:"admin_port,omitempty"`
@@ -187,6 +226,7 @@ type Web struct {
 	HTTPClient                *http.Client
 }
 
+// Session holds cookie/session-store configuration.
 type Session struct {
 	CookieSecretKey     string `json:"cookie_secret_key,omitempty"`
 	SessionSecretKey    string `json:"session_secret_key,omitempty"`
@@ -208,6 +248,8 @@ type PostgresPool struct {
 	MaxConnIdleTime string `json:"max_conn_idle_time,omitempty"`
 }
 
+// Postgres holds Postgres connection configuration and the lazily
+// initialized pool.
 type Postgres struct {
 	Dsn  string       `json:"dsn,omitempty"`
 	Pool PostgresPool `json:"pool"`
@@ -215,6 +257,8 @@ type Postgres struct {
 	init OnceWithErr
 }
 
+// Nats holds NATS connection configuration and the lazily initialized
+// connection and JetStream context.
 type Nats struct {
 	URL       string `json:"url,omitempty"`
 	Stream    string `json:"stream,omitempty"`
@@ -224,6 +268,7 @@ type Nats struct {
 	jsInit    OnceWithErr
 }
 
+// KMS holds Google Cloud KMS configuration and the lazily initialized client.
 type KMS struct {
 	Credentials string `json:"credentials_path,omitempty"`
 	ProjectID   string `json:"project_id,omitempty"`
@@ -235,6 +280,8 @@ type KMS struct {
 	init        OnceWithErr
 }
 
+// CloudStorage holds Google Cloud Storage configuration and the lazily
+// initialized client.
 type CloudStorage struct {
 	BucketName string `json:"bucket_name,omitempty"`
 	BucketKey  string `json:"bucket_key,omitempty"` // path to JSON key
@@ -242,6 +289,7 @@ type CloudStorage struct {
 	init       OnceWithErr
 }
 
+// Redis holds Redis connection configuration and the lazily initialized client.
 type Redis struct {
 	Addr      string `json:"addr,omitempty"`
 	Password  string `json:"password,omitempty"`
@@ -257,9 +305,15 @@ func (r *Redis) GetBufferTTL() (time.Duration, error) {
 		return 1 * time.Hour, nil // Default to 1 hour
 	}
 
-	return time.ParseDuration(r.BufferTTL)
+	d, err := time.ParseDuration(r.BufferTTL)
+	if err != nil {
+		return 0, fmt.Errorf("parsing redis buffer TTL: %w", err)
+	}
+
+	return d, nil
 }
 
+// SMTP holds SMTP server configuration and the lazily initialized mailer client.
 type SMTP struct {
 	Host     string `json:"host,omitempty"`
 	Port     int    `json:"port,omitempty"`
@@ -270,6 +324,7 @@ type SMTP struct {
 	init     OnceWithErr
 }
 
+// Payphone holds Payphone payment-gateway configuration.
 type Payphone struct {
 	Token       string `json:"token,omitempty"`
 	StoreID     string `json:"store_id,omitempty"`
@@ -281,6 +336,7 @@ type Payphone struct {
 	Language    string `json:"language,omitempty"`
 }
 
+// Admin holds the bootstrap admin account's credentials.
 type Admin struct {
 	Email    string `json:"email,omitempty"`
 	Password string `json:"password,omitempty"`
@@ -473,13 +529,13 @@ func (c *CloudStorage) initCloudStorage(ctx context.Context) error {
 		// Set GOOGLE_APPLICATION_CREDENTIALS environment variable
 		// Both GCS and KMS will use this unified credential file
 		if err := os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", c.BucketKey); err != nil {
-			return fmt.Errorf("%w: failed to set credentials: %v", ErrStorageClientCreationFailed, err)
+			return fmt.Errorf("%w: failed to set credentials: %w", ErrStorageClientCreationFailed, err)
 		}
 
 		// Create client without explicit credentials - uses ADC from environment variable
 		client, err := storage.NewClient(ctx)
 		if err != nil {
-			return fmt.Errorf("%w: %v", ErrStorageClientCreationFailed, err)
+			return fmt.Errorf("%w: %w", ErrStorageClientCreationFailed, err)
 		}
 
 		c.Client = client
@@ -500,7 +556,7 @@ func (s *SMTP) initMailer() error {
 	return s.init.Do(func() error {
 		mailer, err := smtp.NewMailer(s.Host, s.Username, s.Password, s.Sender, s.Port)
 		if err != nil {
-			return fmt.Errorf("%w: %v", ErrMailerCreationFailed, err)
+			return fmt.Errorf("%w: %w", ErrMailerCreationFailed, err)
 		}
 
 		s.Client = mailer
@@ -544,14 +600,15 @@ func (p *Postgres) initPostgres(ctx context.Context) error {
 	return p.init.Do(func() error {
 		poolConfig, err := pgxpool.ParseConfig(p.Dsn)
 		if err != nil {
-			return fmt.Errorf("%w: %v", ErrPostgresConnectionFailed, err)
+			return fmt.Errorf("%w: %w", ErrPostgresConnectionFailed, err)
 		}
 
-		maxConns := int32(p.Pool.MaxConns)
+		maxConns := clampToInt32(p.Pool.MaxConns)
 		if maxConns == 0 {
 			maxConns = 25
 		}
-		minConns := int32(p.Pool.MinConns)
+
+		minConns := clampToInt32(p.Pool.MinConns)
 		if minConns == 0 {
 			minConns = 5
 		}
@@ -563,11 +620,11 @@ func (p *Postgres) initPostgres(ctx context.Context) error {
 
 		db, err := pgxpool.NewWithConfig(ctx, poolConfig)
 		if err != nil {
-			return fmt.Errorf("%w: %v", ErrPostgresConnectionFailed, err)
+			return fmt.Errorf("%w: %w", ErrPostgresConnectionFailed, err)
 		}
 
 		if err := db.Ping(ctx); err != nil {
-			return fmt.Errorf("%w: %v", ErrPostgresPingFailed, err)
+			return fmt.Errorf("%w: %w", ErrPostgresPingFailed, err)
 		}
 
 		p.DB = db
@@ -584,7 +641,7 @@ func (r *Redis) initRedis(ctx context.Context) error {
 			DB:       r.DB,
 		})
 		if err := rdb.Ping(ctx).Err(); err != nil {
-			return fmt.Errorf("%w: %v", ErrRedisPingFailed, err)
+			return fmt.Errorf("%w: %w", ErrRedisPingFailed, err)
 		}
 
 		r.Client = rdb
@@ -597,7 +654,7 @@ func (n *Nats) initNATS() error {
 	return n.init.Do(func() error {
 		nc, err := nats.Connect(n.URL)
 		if err != nil {
-			return fmt.Errorf("%w: %v", ErrNATSConnectionFailed, err)
+			return fmt.Errorf("%w: %w", ErrNATSConnectionFailed, err)
 		}
 
 		n.Conn = nc
@@ -611,11 +668,12 @@ func (n *Nats) initJetStream() error {
 		// Create new JetStream instance using new API
 		js, err := jetstream.New(n.Conn)
 		if err != nil {
-			return fmt.Errorf("%w: %v", ErrJetStreamCreationFailed, err)
+			return fmt.Errorf("%w: %w", ErrJetStreamCreationFailed, err)
 		}
 
 		// Check if stream exists using new API
 		ctx := context.Background()
+
 		_, err = js.Stream(ctx, n.Stream)
 		if err != nil {
 			if errors.Is(err, jetstream.ErrStreamNotFound) {
@@ -625,18 +683,19 @@ func (n *Nats) initJetStream() error {
 					Subjects: []string{n.Stream + ".>"},
 				})
 				if err != nil {
-					return fmt.Errorf("%w: %v", ErrStreamAddFailed, err)
+					return fmt.Errorf("%w: %w", ErrStreamAddFailed, err)
 				}
 			} else {
-				return fmt.Errorf("%w: %v", ErrStreamInfoFailed, err)
+				return fmt.Errorf("%w: %w", ErrStreamInfoFailed, err)
 			}
 		}
 
 		// Store old API context for backward compatibility (if needed)
 		oldJS, err := n.Conn.JetStream()
 		if err != nil {
-			return fmt.Errorf("%w: %v", ErrJetStreamCreationFailed, err)
+			return fmt.Errorf("%w: %w", ErrJetStreamCreationFailed, err)
 		}
+
 		n.JetStream = oldJS
 
 		return nil
@@ -648,14 +707,14 @@ func (g *KMS) initKMS(ctx context.Context) error {
 		// Set GOOGLE_APPLICATION_CREDENTIALS if not already set by Cloud Storage
 		if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") == "" {
 			if err := os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", g.Credentials); err != nil {
-				return fmt.Errorf("%w: failed to set credentials: %v", ErrKMSClientCreationFailed, err)
+				return fmt.Errorf("%w: failed to set credentials: %w", ErrKMSClientCreationFailed, err)
 			}
 		}
 
 		// Create client without explicit credentials - uses ADC from environment variable
 		client, err := kms.NewKeyManagementClient(ctx)
 		if err != nil {
-			return fmt.Errorf("%w: %v", ErrKMSClientCreationFailed, err)
+			return fmt.Errorf("%w: %w", ErrKMSClientCreationFailed, err)
 		}
 
 		g.Client = client
@@ -678,6 +737,7 @@ func (g *KMS) GetKMSKeyName() string {
 
 func (c *Cfg) initLogger() error {
 	level := slog.LevelInfo
+
 	switch strings.ToLower(c.Log.Level) {
 	case "debug":
 		level = slog.LevelDebug
@@ -750,7 +810,7 @@ func (c *Cfg) InitSelected(ctx context.Context, services []Service) error {
 			if _, err := fmt.Fprintf(os.Stderr, "%s initialized\n", service); err != nil {
 				// If we can't write to stderr, there's not much we can do
 				// This is a rare case, but we acknowledge the error
-				return fmt.Errorf("%w: %v", ErrInitMessageWriteFailed, err)
+				return fmt.Errorf("%w: %w", ErrInitMessageWriteFailed, err)
 			}
 		}
 	}
@@ -766,7 +826,7 @@ func (s *SMTP) SendEmail(
 	htmlBody string,
 ) error {
 	if err := s.Client.Send(email, subject, plainBody, htmlBody); err != nil {
-		return fmt.Errorf("%w: %v", ErrEmailSendFailed, err)
+		return fmt.Errorf("%w: %w", ErrEmailSendFailed, err)
 	}
 
 	return nil

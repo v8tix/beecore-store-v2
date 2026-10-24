@@ -21,7 +21,7 @@ type RetryConfig struct {
 //   - Multiplier: 2.0 (exponential backoff)
 //   - MaxElapsedTime: 30s
 //
-// Backoff progression: 10ms → 20ms → 40ms → 80ms → 160ms → 320ms → 640ms → 1280ms → 2s (capped)
+// Backoff progression: 10ms → 20ms → 40ms → 80ms → 160ms → 320ms → 640ms → 1280ms → 2s (capped).
 func DefaultRetryConfig() RetryConfig {
 	return RetryConfig{
 		MaxRetries:      20,
@@ -42,7 +42,7 @@ func DefaultRetryConfig() RetryConfig {
 //   - Multiplier: 1.5 (slower growth)
 //   - MaxElapsedTime: 60s
 //
-// Backoff progression: 5ms → 7.5ms → 11.25ms → 16.87ms → 25.31ms → ... → 1s (capped)
+// Backoff progression: 5ms → 7.5ms → 11.25ms → 16.87ms → 25.31ms → ... → 1s (capped).
 func HighContentionRetryConfig() RetryConfig {
 	return RetryConfig{
 		MaxRetries:      50,
@@ -55,7 +55,9 @@ func HighContentionRetryConfig() RetryConfig {
 
 // CustomRetryConfig creates a custom retry configuration.
 // Use this when you need fine-grained control over retry behavior.
-func CustomRetryConfig(maxRetries int, initialInterval, maxInterval, maxElapsedTime time.Duration, multiplier float64) RetryConfig {
+func CustomRetryConfig(
+	maxRetries int, initialInterval, maxInterval, maxElapsedTime time.Duration, multiplier float64,
+) RetryConfig {
 	return RetryConfig{
 		MaxRetries:      maxRetries,
 		InitialInterval: initialInterval,

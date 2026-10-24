@@ -128,7 +128,7 @@ func NamedTemplateWithHeaders(
 	maps.Copy(w.Header(), headers)
 
 	w.WriteHeader(status)
-	buf.WriteTo(w)
+	_, _ = buf.WriteTo(w)
 
 	return nil
 }

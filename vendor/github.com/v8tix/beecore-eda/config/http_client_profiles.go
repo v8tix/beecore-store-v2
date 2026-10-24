@@ -18,26 +18,39 @@ func (p CallProfile) resolve(def CallProfile) CallProfile {
 	if resolved.Timeout.Duration() == 0 {
 		resolved.Timeout = def.Timeout
 	}
+
 	if resolved.MaxRetries == 0 {
 		resolved.MaxRetries = def.MaxRetries
 	}
+
 	if resolved.RetryInterval.Duration() == 0 {
 		resolved.RetryInterval = def.RetryInterval
 	}
+
 	return resolved
 }
 
-var (
-	defaultFastProfile = CallProfile{
+// defaultFastProfile, defaultDefaultProfile and defaultSlowProfile are plain
+// functions rather than package-level vars since CallProfile values are
+// never mutated in place — this keeps them effectively constant without a
+// gochecknoglobals exception.
+func defaultFastProfile() CallProfile {
+	return CallProfile{
 		Timeout: NewDuration(time.Second), MaxRetries: 3, RetryInterval: NewDuration(100 * time.Millisecond),
 	}
-	defaultDefaultProfile = CallProfile{
+}
+
+func defaultDefaultProfile() CallProfile {
+	return CallProfile{
 		Timeout: NewDuration(2 * time.Second), MaxRetries: 3, RetryInterval: NewDuration(250 * time.Millisecond),
 	}
-	defaultSlowProfile = CallProfile{
+}
+
+func defaultSlowProfile() CallProfile {
+	return CallProfile{
 		Timeout: NewDuration(10 * time.Second), MaxRetries: 3, RetryInterval: NewDuration(500 * time.Millisecond),
 	}
-)
+}
 
 // HTTPClient holds named call-tuning profiles for cross-service HTTP calls, so
 // callers pick a profile matching how long that kind of call is expected to
@@ -55,12 +68,12 @@ type HTTPClient struct {
 
 // GetFast returns the "fast" call profile, falling back to built-in defaults
 // for any field not set in config.
-func (h HTTPClient) GetFast() CallProfile { return h.Fast.resolve(defaultFastProfile) }
+func (h HTTPClient) GetFast() CallProfile { return h.Fast.resolve(defaultFastProfile()) }
 
 // GetDefault returns the "default" call profile, falling back to built-in
 // defaults for any field not set in config.
-func (h HTTPClient) GetDefault() CallProfile { return h.Default.resolve(defaultDefaultProfile) }
+func (h HTTPClient) GetDefault() CallProfile { return h.Default.resolve(defaultDefaultProfile()) }
 
 // GetSlow returns the "slow" call profile, falling back to built-in defaults
 // for any field not set in config.
-func (h HTTPClient) GetSlow() CallProfile { return h.Slow.resolve(defaultSlowProfile) }
+func (h HTTPClient) GetSlow() CallProfile { return h.Slow.resolve(defaultSlowProfile()) }

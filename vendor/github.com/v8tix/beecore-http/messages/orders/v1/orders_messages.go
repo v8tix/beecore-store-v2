@@ -1,3 +1,4 @@
+// Package orders holds wire-message DTOs for the orders HTTP API.
 package orders
 
 import (
@@ -8,6 +9,7 @@ import (
 )
 
 type (
+	// CreateOrderV1Req requests a new order be created from a basket.
 	CreateOrderV1Req struct {
 		UserID            string                 `json:"user_id,omitempty"`
 		PaymentID         string                 `json:"payment_id,omitempty"`
@@ -15,17 +17,21 @@ type (
 		ShippingAddressID string                 `json:"shipping_address_id,omitempty"`
 		FinancialItem     common.FinancialItemV1 `json:"financial_item,omitempty"`
 	}
+	// CreateOrderV1Res is the newly created order's identifier.
 	CreateOrderV1Res struct {
 		OrderID string `json:"order_id,omitempty"`
 	}
 
+	// CreateOrderEnvRes envelopes a CreateOrderV1Res.
 	CreateOrderEnvRes struct {
 		Order CreateOrderV1Res `json:"order,omitempty"`
 	}
 
+	// CompleteOrderV1Req requests an order be marked complete against an invoice.
 	CompleteOrderV1Req struct {
 		InvoiceID string `json:"invoice_id,omitempty"`
 	}
+	// GetOrderV1Res is a single order as carried on the wire.
 	GetOrderV1Res struct {
 		OrderID         string                   `json:"order_id,omitempty"`
 		UserID          string                   `json:"user_id,omitempty"`
@@ -37,16 +43,20 @@ type (
 		UpdatedAt       time.Time                `json:"updated_at,omitempty"`
 	}
 
+	// GetOrderEnvV1Res envelopes a GetOrderV1Res.
 	GetOrderEnvV1Res struct {
 		Order GetOrderV1Res `json:"order,omitempty"`
 	}
+	// GetOrdersByUserIDEnvV1Res envelopes a user's list of orders.
 	GetOrdersByUserIDEnvV1Res struct {
 		Orders []GetOrderV1Res `json:"orders,omitempty"`
 	}
 )
 
+// Req marks CreateOrderV1Req as a request payload.
 func (c CreateOrderV1Req) Req() {}
 
+// Validate checks CreateOrderV1Req's required fields.
 func (c CreateOrderV1Req) Validate(v *validator.Validator) {
 	v.Check(len(c.FinancialItem.Products) != 0, "items", "can't be empty")
 	v.Check(len(c.UserID) != 0, "user_id", "must be provided")
@@ -55,16 +65,22 @@ func (c CreateOrderV1Req) Validate(v *validator.Validator) {
 	v.Check(len(c.ShippingAddressID) != 0, "shipping_address_id", "must be provided")
 }
 
+// Res marks CreateOrderV1Res as a response payload.
 func (c CreateOrderV1Res) Res() {}
 
+// Req marks CompleteOrderV1Req as a request payload.
 func (c CompleteOrderV1Req) Req() {}
 
+// Validate checks CompleteOrderV1Req's required fields.
 func (c CompleteOrderV1Req) Validate(v *validator.Validator) {
 	v.Check(len(c.InvoiceID) != 0, "invoice_id", "must be provided")
 }
 
+// Res marks CreateOrderEnvRes as a response payload.
 func (c CreateOrderEnvRes) Res() {}
 
+// Res marks GetOrderEnvV1Res as a response payload.
 func (g GetOrderEnvV1Res) Res() {}
 
+// Res marks GetOrdersByUserIDEnvV1Res as a response payload.
 func (g GetOrdersByUserIDEnvV1Res) Res() {}

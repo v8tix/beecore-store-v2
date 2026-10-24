@@ -1,11 +1,14 @@
+// Package confirm holds wire-message DTOs for confirming a PayPhone order transaction.
 package confirm
 
 type (
+	// PayPhoneConfirmReq requests confirmation of a PayPhone transaction.
 	PayPhoneConfirmReq struct {
 		ID         int    `json:"id,omitempty"`
 		ClientTxID string `json:"clientTxId,omitempty"`
 	}
 
+	// PayPhoneConfirmRes is PayPhone's transaction confirmation response.
 	PayPhoneConfirmRes struct {
 		Email               string  `json:"email,omitempty"`
 		CardType            string  `json:"cardType,omitempty"`
@@ -42,6 +45,8 @@ type (
 	}
 )
 
+// Req marks PayPhoneConfirmReq as a request payload.
 func (p PayPhoneConfirmReq) Req() {}
 
+// Res marks PayPhoneConfirmRes as a response payload.
 func (p PayPhoneConfirmRes) Res() {}
