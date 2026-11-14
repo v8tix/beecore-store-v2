@@ -328,7 +328,7 @@ github.com/teivah/onecontext
 ## explicit; go 1.27.4
 github.com/v8tix/beecore-auth-v3-mod/model
 github.com/v8tix/beecore-auth-v3-mod/repository
-# github.com/v8tix/beecore-eda/v2 v2.0.1
+# github.com/v8tix/beecore-eda/v2 v2.0.2
 ## explicit; go 1.27.4
 github.com/v8tix/beecore-eda/v2/config
 github.com/v8tix/beecore-eda/v2/smtp
@@ -349,7 +349,7 @@ github.com/v8tix/beecore-http/worker
 # github.com/v8tix/jsonx v1.0.1
 ## explicit; go 1.26
 github.com/v8tix/jsonx
-# github.com/v8tix/kawa v1.0.4
+# github.com/v8tix/kawa v1.0.5
 ## explicit; go 1.27.4
 github.com/v8tix/kawa
 github.com/v8tix/kawa/policy
