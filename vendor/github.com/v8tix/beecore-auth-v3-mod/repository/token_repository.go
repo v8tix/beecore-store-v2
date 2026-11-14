@@ -62,24 +62,6 @@ func (r Repository) FindTokenByUserIDAndScope(ctx context.Context, userID string
 	return &token, nil
 }
 
-func (r Repository) insertToken(ctx context.Context, token *model.Token) error {
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO users.tokens (
-			id, 
-			user_id, 
-			token, 
-			scope, 
-			expiry
-		) VALUES ($1, $2, $3, $4, $5)
-	`, token.ID, token.UserID, token.Value, token.Scope, token.ExpiredAt)
-
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInsertToken, err)
-	}
-
-	return nil
-}
-
 func (r Repository) UpdateToken(ctx context.Context, token *model.Token) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE users.tokens

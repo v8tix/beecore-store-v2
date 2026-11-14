@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/reactivex/rxgo/v2"
+	"github.com/v8tix/rxgo/v2"
 	"github.com/v8tix/jsonx"
 )
 

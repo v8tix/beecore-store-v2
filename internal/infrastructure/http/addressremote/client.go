@@ -9,7 +9,7 @@ package addressremote
 import (
 	"time"
 
-	"github.com/v8tix/beecore-eda/config"
+	"github.com/v8tix/beecore-eda/v2/config"
 	users "github.com/v8tix/beecore-http/messages/users/v1"
 	"github.com/v8tix/kawa"
 

@@ -8,7 +8,7 @@ package orderremote
 import (
 	"time"
 
-	"github.com/v8tix/beecore-eda/config"
+	"github.com/v8tix/beecore-eda/v2/config"
 	common "github.com/v8tix/beecore-http/messages/common/v1"
 	orders "github.com/v8tix/beecore-http/messages/orders/v1"
 	"github.com/v8tix/kawa"
