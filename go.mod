@@ -18,10 +18,10 @@ require (
 	github.com/justinas/nosurf v1.2.0
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/stretchr/testify v1.12.1
-	github.com/v8tix/beecore-eda/v2 v2.0.1
+	github.com/v8tix/beecore-eda/v2 v2.0.2
 	github.com/v8tix/beecore-http v1.3.2
 	github.com/v8tix/jsonx v1.0.1
-	github.com/v8tix/kawa v1.0.4
+	github.com/v8tix/kawa v1.0.5
 	golang.org/x/crypto v0.59.0
 	golang.org/x/text v0.44.0
 )
