@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/v8tix/beecore-eda/config"
+	"github.com/v8tix/beecore-eda/v2/config"
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
 	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/orderremote"

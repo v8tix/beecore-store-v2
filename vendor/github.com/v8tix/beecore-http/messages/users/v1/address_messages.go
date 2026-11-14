@@ -80,7 +80,6 @@ func (r RegisterAddressV1Req) Validate(v *validator.Validator) {
 	v.Check(len(r.City) != 0, "city", "must be provided")
 	v.Check(len(r.PostalCode) != 0, "postal_code", "must be provided")
 	v.Check(len(r.MainStreet) != 0, "main_street", "must be provided")
-	v.Check(len(r.SecondaryStreet) != 0, "secondary_street", "must be provided")
 	v.Check(len(r.Numeration) != 0, "numeration", "must be provided")
 	v.Check(len(r.Phone) != 0, "phone", "must be provided")
 }
@@ -102,7 +101,6 @@ func (u UpdateAddressV1Req) Validate(v *validator.Validator) {
 	v.Check(len(u.City) != 0, "city", "must be provided")
 	v.Check(len(u.PostalCode) != 0, "postal_code", "must be provided")
 	v.Check(len(u.MainStreet) != 0, "main_street", "must be provided")
-	v.Check(len(u.SecondaryStreet) != 0, "secondary_street", "must be provided")
 	v.Check(len(u.Numeration) != 0, "numeration", "must be provided")
 	v.Check(len(u.Phone) != 0, "phone", "must be provided")
 }
