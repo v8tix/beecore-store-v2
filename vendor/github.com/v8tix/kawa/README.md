@@ -626,6 +626,20 @@ Tests are split into two layers:
 
 ---
 
+## Branching strategy
+
+* `main` always holds released, working code.
+* `develop` is the integration branch where new work lands first.
+* Both branches are protected: nobody can push to them directly, force-push them or delete them. Every change
+  arrives through a pull request, which must pass the CI checks with all conversations resolved.
+* Start a feature or fix from `develop` (`git switch -c feature/<name> develop`), open a pull request into
+  `develop`, and merge it once CI is green.
+* To release, open a pull request from `develop` into `main`. Use **Create a merge commit** (not squash or
+  rebase) so the two branches keep a common history. After it is merged, tag the release on `main`, for example
+  `git tag -a v1.0.4 -m "v1.0.4" && git push origin v1.0.4`.
+
+---
+
 ## License
 
 Licensed under the [MIT License](LICENSE).

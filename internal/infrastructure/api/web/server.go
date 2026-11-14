@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/v8tix/beecore-eda/config"
+	"github.com/v8tix/beecore-eda/v2/config"
 )
 
 const (

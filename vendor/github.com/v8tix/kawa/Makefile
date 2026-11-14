@@ -20,6 +20,16 @@ tidy:
 	@go fmt ./...
 	@go mod tidy -v
 
+## vuln: scan the code and its dependencies for known vulnerabilities
+.PHONY: vuln
+vuln:
+	@go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+## lint: run golangci-lint (the same linter CI uses)
+.PHONY: lint
+lint:
+	@go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run
+
 ## audit: run quality control checks
 .PHONY: audit
 audit:

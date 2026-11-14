@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/reactivex/rxgo/v2"
+	"github.com/v8tix/rxgo/v2"
 )
 
 // HTTPCall is a reusable descriptor for a typed HTTP operation.
