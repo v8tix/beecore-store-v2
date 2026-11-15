@@ -328,7 +328,7 @@ github.com/teivah/onecontext
 ## explicit; go 1.27.4
 github.com/v8tix/beecore-auth-v3-mod/model
 github.com/v8tix/beecore-auth-v3-mod/repository
-# github.com/v8tix/beecore-eda/v2 v2.0.2
+# github.com/v8tix/beecore-eda/v2 v2.0.3
 ## explicit; go 1.27.4
 github.com/v8tix/beecore-eda/v2/config
 github.com/v8tix/beecore-eda/v2/smtp

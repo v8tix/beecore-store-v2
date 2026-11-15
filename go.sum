@@ -138,6 +138,8 @@ github.com/v8tix/beecore-auth-v3-mod v1.0.8 h1:Zw8S0+C5+A32LCI+pD5oNcmSI458fxVSX
 github.com/v8tix/beecore-auth-v3-mod v1.0.8/go.mod h1:v9/bxoen7j3VfR15g8XUPz22VCKqTxnbSXDqrP7xv1k=
 github.com/v8tix/beecore-eda/v2 v2.0.2 h1:Nqp2RyIRAKX8PplV1yHi/JB5fF8d7SNyM42rnHeTtx4=
 github.com/v8tix/beecore-eda/v2 v2.0.2/go.mod h1:N9XIaHkXaoKJY1olouomqcXXiyYGxMrcbxYxLkbHZBI=
+github.com/v8tix/beecore-eda/v2 v2.0.3 h1:7j+6OtJnznulVI/kcQZBgiTAuJHcTvB2aweLnjWaEQs=
+github.com/v8tix/beecore-eda/v2 v2.0.3/go.mod h1:N9XIaHkXaoKJY1olouomqcXXiyYGxMrcbxYxLkbHZBI=
 github.com/v8tix/beecore-hash-mod v1.0.4 h1:PP0aJVbgW7iJ6P4hQVjzPUEG7I2SPwwi1OsWCOJAobs=
 github.com/v8tix/beecore-hash-mod v1.0.4/go.mod h1:HvbEFcMsflaRzqqHIuvJ9JJgBgD20JZa9H4vRVo6UIc=
 github.com/v8tix/beecore-http v1.3.2 h1:p1Gg5G6Vgz9XtZI92DlN/z6sFCCygXHjs+uKq+Wtmn4=
