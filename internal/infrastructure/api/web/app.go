@@ -23,6 +23,7 @@ import (
 	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/authremote"
 	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/basketremote"
 	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/orderremote"
+	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/paymentrecordremote"
 	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/payphoneremote"
 	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/productremote"
 	"github.com/v8tix/beecore-store-v2/internal/infrastructure/http/userremote"
@@ -59,14 +60,15 @@ type app struct {
 // its slice's port/resource interface — this app's analog of the
 // reference's repositories struct. No PayPalRemote (spec assumption #5).
 type resources struct {
-	authRemote     resource.AuthRemote
-	userRemote     resource.UserRemote
-	addressRemote  resource.AddressRemote
-	productRemote  resource.ProductRemote
-	basketRemote   resource.BasketRemote
-	orderRemote    resource.OrderRemote
-	payPhoneRemote resource.PayPhoneRemote
-	sessionStore   resource.SessionStore
+	authRemote          resource.AuthRemote
+	userRemote          resource.UserRemote
+	addressRemote       resource.AddressRemote
+	productRemote       resource.ProductRemote
+	basketRemote        resource.BasketRemote
+	orderRemote         resource.OrderRemote
+	payPhoneRemote      resource.PayPhoneRemote
+	paymentRecordRemote resource.PaymentRecordRemote
+	sessionStore        resource.SessionStore
 }
 
 // services are every vertical slice's use-case that has a route mounted on
@@ -95,14 +97,15 @@ type handlers struct {
 
 func setupResources(cfg *config.Cfg) *resources {
 	return &resources{
-		authRemote:     authremote.NewClient(cfg),
-		userRemote:     userremote.NewClient(cfg),
-		addressRemote:  addressremote.NewClient(cfg),
-		productRemote:  productremote.NewClient(cfg),
-		basketRemote:   basketremote.NewClient(cfg),
-		orderRemote:    orderremote.NewClient(cfg),
-		payPhoneRemote: payphoneremote.NewClient(cfg),
-		sessionStore:   redissession.NewStore(config.NewRedisTokenCache(cfg.Redis.Client)),
+		authRemote:          authremote.NewClient(cfg),
+		userRemote:          userremote.NewClient(cfg),
+		addressRemote:       addressremote.NewClient(cfg),
+		productRemote:       productremote.NewClient(cfg),
+		basketRemote:        basketremote.NewClient(cfg),
+		orderRemote:         orderremote.NewClient(cfg),
+		payPhoneRemote:      payphoneremote.NewClient(cfg),
+		paymentRecordRemote: paymentrecordremote.NewClient(cfg),
+		sessionStore:        redissession.NewStore(config.NewRedisTokenCache(cfg.Redis.Client)),
 	}
 }
 
@@ -158,10 +161,11 @@ func setupServices(cfg *config.Cfg, res *resources) (*services, error) {
 			AuthRemote:  res.authRemote,
 		}),
 		payment: payment.NewPaymentService(payment.Dependencies{
-			PayPhoneRemote: res.payPhoneRemote,
-			AuthRemote:     res.authRemote,
-			OrderRemote:    res.orderRemote,
-			BasketRemote:   res.basketRemote,
+			PayPhoneRemote:      res.payPhoneRemote,
+			AuthRemote:          res.authRemote,
+			OrderRemote:         res.orderRemote,
+			BasketRemote:        res.basketRemote,
+			PaymentRecordRemote: res.paymentRecordRemote,
 		}),
 	}, nil
 }

@@ -38,8 +38,14 @@ func newCheckoutHandler(
 func TestPaymentHandler_ProcessPayment(t *testing.T) {
 	store := newTestCookieStore()
 
+	newProcessSessionStore := func(t *testing.T) *mocks.SessionStore {
+		sessionStore := mocks.NewSessionStore(t)
+		sessionStore.On("Load", mock.Anything, "sess-1").Return(domain.Session{UserID: "u1"}, nil)
+		return sessionStore
+	}
+
 	t.Run("GET is not allowed", func(t *testing.T) {
-		h := newPaymentHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), store)
+		h := newCheckoutHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), servicemocks.NewAddress(t), mocks.NewSessionStore(t), store)
 
 		w := httptest.NewRecorder()
 		h.ProcessPayment(w, httptest.NewRequest(http.MethodGet, "/payphone/process", nil))
@@ -49,8 +55,8 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 		}
 	})
 
-	t.Run("no basket ID in cookie is a 500", func(t *testing.T) {
-		h := newPaymentHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), store)
+	t.Run("no user session is a 500", func(t *testing.T) {
+		h := newCheckoutHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), servicemocks.NewAddress(t), mocks.NewSessionStore(t), store)
 
 		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", nil, map[any]any{})
 		w := httptest.NewRecorder()
@@ -61,11 +67,25 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 		}
 	})
 
+	t.Run("no basket ID in cookie is a 500", func(t *testing.T) {
+		h := newCheckoutHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), servicemocks.NewAddress(t), newProcessSessionStore(t), store)
+
+		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", nil, map[any]any{keys.SessionID: "sess-1"})
+		w := httptest.NewRecorder()
+		h.ProcessPayment(w, r)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("got status %d, want %d", w.Code, http.StatusInternalServerError)
+		}
+	})
+
 	t.Run("missing shipping_address_id in body is a 400", func(t *testing.T) {
-		h := newPaymentHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), store)
+		h := newCheckoutHandler(t, servicemocks.NewPayment(t), servicemocks.NewBasket(t), servicemocks.NewAddress(t), newProcessSessionStore(t), store)
 
 		body := strings.NewReader(`{"total":23}`)
-		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{keys.SessionBasketID: "b1"})
+		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{
+			keys.SessionID: "sess-1", keys.SessionBasketID: "b1",
+		})
 		w := httptest.NewRecorder()
 		h.ProcessPayment(w, r)
 
@@ -78,10 +98,12 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 		basketService := servicemocks.NewBasket(t)
 		basketService.On("ComputeFinancials", mock.Anything, "b1").Return(domain.Financials{}, errors.New("boom"))
 
-		h := newPaymentHandler(t, servicemocks.NewPayment(t), basketService, store)
+		h := newCheckoutHandler(t, servicemocks.NewPayment(t), basketService, servicemocks.NewAddress(t), newProcessSessionStore(t), store)
 
 		body := strings.NewReader(`{"shipping_address_id":"a1","total":23}`)
-		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{keys.SessionBasketID: "b1"})
+		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{
+			keys.SessionID: "sess-1", keys.SessionBasketID: "b1",
+		})
 		w := httptest.NewRecorder()
 		h.ProcessPayment(w, r)
 
@@ -90,20 +112,23 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 		}
 	})
 
-	t.Run("success stores shipping address, computes financials, calls PaymentService and responds with JSON", func(t *testing.T) {
+	t.Run("success stores shipping address, computes financials, calls PaymentService with the session's UserID and responds with JSON", func(t *testing.T) {
 		basketService := servicemocks.NewBasket(t)
 		financials := domain.Financials{Total: 23}
 		basketService.On("ComputeFinancials", mock.Anything, "b1").Return(financials, nil)
 
 		paymentService := servicemocks.NewPayment(t)
 		paymentService.On("ProcessPayment", mock.Anything, mock.MatchedBy(func(req domain.PaymentRequest) bool {
-			return req.Financials.Total == 23 && req.OrderID != "" && req.ClientTransactionID != "" && req.OrderID != req.ClientTransactionID
+			return req.Financials.Total == 23 && req.UserID == "u1" &&
+				req.OrderID != "" && req.ClientTransactionID != "" && req.OrderID != req.ClientTransactionID
 		})).Return(domain.PaymentResult{PaymentID: "ctx-1", OrderID: "o1", Status: "CREATED", ConfirmURL: "https://x/payphone/confirm"}, nil)
 
-		h := newPaymentHandler(t, paymentService, basketService, store)
+		h := newCheckoutHandler(t, paymentService, basketService, servicemocks.NewAddress(t), newProcessSessionStore(t), store)
 
 		body := strings.NewReader(`{"shipping_address_id":"a1","total":23}`)
-		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{keys.SessionBasketID: "b1"})
+		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{
+			keys.SessionID: "sess-1", keys.SessionBasketID: "b1",
+		})
 		w := httptest.NewRecorder()
 		h.ProcessPayment(w, r)
 
@@ -125,10 +150,12 @@ func TestPaymentHandler_ProcessPayment(t *testing.T) {
 		paymentService := servicemocks.NewPayment(t)
 		paymentService.On("ProcessPayment", mock.Anything, mock.Anything).Return(domain.PaymentResult{}, errors.New("boom"))
 
-		h := newPaymentHandler(t, paymentService, basketService, store)
+		h := newCheckoutHandler(t, paymentService, basketService, servicemocks.NewAddress(t), newProcessSessionStore(t), store)
 
 		body := strings.NewReader(`{"shipping_address_id":"a1","total":23}`)
-		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{keys.SessionBasketID: "b1"})
+		r := basketCookieRequest(t, store, http.MethodPost, "/payphone/process", body, map[any]any{
+			keys.SessionID: "sess-1", keys.SessionBasketID: "b1",
+		})
 		w := httptest.NewRecorder()
 		h.ProcessPayment(w, r)
 

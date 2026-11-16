@@ -173,6 +173,12 @@ func (h *PaymentHandler) ProcessPayment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	_, sess, ok := h.currentSession(r)
+	if !ok || sess.UserID == "" {
+		serverError(h.Logger, w, r, keys.ErrSessionUserIDRequired)
+		return
+	}
+
 	session, err := h.Sessions.Get(r, h.SessionCookieName)
 	if err != nil {
 		serverError(h.Logger, w, r, err)
@@ -228,6 +234,7 @@ func (h *PaymentHandler) ProcessPayment(w http.ResponseWriter, r *http.Request) 
 	result, err := h.PaymentService.ProcessPayment(r.Context(), domain.PaymentRequest{
 		OrderID:             orderID,
 		ClientTransactionID: clientTransactionID,
+		UserID:              sess.UserID,
 		Financials:          financials,
 	})
 	if err != nil {

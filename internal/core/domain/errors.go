@@ -61,4 +61,13 @@ var (
 	// completed order) and transparently starts a fresh basket and retries,
 	// instead of showing the user a server error.
 	ErrBasketCheckedOut = errors.New("basket already checked out")
+
+	// ErrPaymentNotPending mirrors the source repo's
+	// ErrPaymentStatusValidationFailed check in
+	// cmd/web/payphone_handlers.go's PayPhoneConfirm handler: the payment
+	// record ProcessPayment created must still be PENDING by the time
+	// PayPhone redirects back to ConfirmPayment, or the confirmation is
+	// rejected outright rather than risking a double-charge/double-order
+	// on a retried or replayed callback.
+	ErrPaymentNotPending = errors.New("payment record is not pending")
 )
