@@ -71,6 +71,11 @@ test/cover:
 	@go tool cover -func ${COVER_FILE_NAME}
 	@go tool cover -html=${COVER_FILE_NAME} -o ${COVER_FILE_NAME}.html
 
+## test/e2e: run browser-driven e2e tests against a live, already-running instance (requires E2E_EMAIL/E2E_PASSWORD; see e2e/doc.go)
+.PHONY: test/e2e
+test/e2e:
+	@go test -tags e2e -v ./e2e/...
+
 ## vendor: tidy and vendor dependencies
 .PHONY: vendor
 vendor:

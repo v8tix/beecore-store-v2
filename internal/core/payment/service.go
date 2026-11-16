@@ -4,30 +4,42 @@
 // comment for the full mapping). PayPal is deprecated and not ported (spec
 // assumption #5): unlike the source's PaymentStrategy interface — resolved
 // at runtime to one of two concrete strategies via
-// cfg.BusinessParameters.Country.PaymentStrategy — every method here is a
-// thin pass-through straight to resource.PayPhoneRemote, the single
-// implementation. Unlike core/basket.Service, core/order.Service and
-// core/product.Service, ProcessPayment/ConfirmPayment/CancelPayment resolve
-// no admin token: PayPhone's gateway is authenticated with its own static
-// Payphone.Token (config, held by the resource.PayPhoneRemote adapter),
-// never our downstream microservices' per-request admin/user token.
-// GeneratePayPhoneConfig/GeneratePayPhoneConfigWithTransactionID are the
-// exception (plan Task 19, resolving the deferral resource.UserRemote's and
-// port/resource.PayPhoneRemote's earlier doc comments described): they need
-// an admin token to resolve the shopper's own contact details via
-// resource.AuthRemote.FindUserByID, so this service also depends on
-// resource.AuthRemote for that one purpose — the same "reuse GetAdminToken
-// from AuthRemote" pattern every other core/*.Service in this repo already
-// uses, not a new one invented here.
+// cfg.BusinessParameters.Country.PaymentStrategy — ProcessPayment/
+// ConfirmPayment/CancelPayment are mostly thin pass-throughs straight to
+// resource.PayPhoneRemote, the single implementation, plus
+// resource.PaymentRecordRemote's audit/idempotency bookkeeping (see that
+// interface's doc comment for why it's a separate dependency from the
+// PayPhone gateway call itself). PayPhone's gateway is authenticated with
+// its own static Payphone.Token (config, held by the
+// resource.PayPhoneRemote adapter), never our downstream microservices'
+// per-request admin/user token — AuthRemote/PaymentRecordRemote calls use
+// an admin token instead, the same "reuse GetAdminToken from AuthRemote"
+// pattern every other core/*.Service in this repo already uses.
 package payment
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/v8tix/beecore-store-v2/internal/core/domain"
 	"github.com/v8tix/beecore-store-v2/internal/core/port/resource"
 	"github.com/v8tix/beecore-store-v2/internal/core/port/service"
 	"github.com/v8tix/beecore-store-v2/internal/token"
+)
+
+// paymentPlatform is the value recorded on every payment record — PayPal
+// is deprecated and not ported (spec assumption #5), so this is the only
+// provider going forward. Mirrors domain.Payment's own doc comment.
+const paymentPlatform = "payphone"
+
+// Payment record status values, mirroring the
+// repository.PaymentPending/PaymentConfirmed/PaymentFailed constants in
+// the source repo's internal/business/core/repository/payments_repository.go.
+const (
+	paymentStatusPending   = "PENDING"
+	paymentStatusConfirmed = "CONFIRMED"
+	paymentStatusFailed    = "FAILED"
 )
 
 // Dependencies are paymentService's collaborators, all resolved once at
@@ -53,6 +65,13 @@ type Dependencies struct {
 	// Payment-slice landed.
 	OrderRemote  resource.OrderRemote
 	BasketRemote resource.BasketRemote
+
+	// PaymentRecordRemote records (and later updates) beecore-payments'
+	// own audit/idempotency record of each payment attempt — see that
+	// interface's doc comment. Used by ProcessPayment (create, PENDING)
+	// and ConfirmPayment (find + validate, then update to
+	// CONFIRMED/FAILED).
+	PaymentRecordRemote resource.PaymentRecordRemote
 }
 
 type paymentService struct {
@@ -66,16 +85,52 @@ func NewPaymentService(d Dependencies) *paymentService {
 }
 
 // ProcessPayment mirrors Repository.ProcessPayment (via the
-// PaymentStrategy interface) exposed at the service layer.
+// PaymentStrategy interface) exposed at the service layer, plus — unlike
+// the source's pass-through — the source handler's own CreatePayment call
+// (cmd/web/payphone_handlers.go's PayPhoneCreatePayment), ported down to
+// this layer since PaymentHandler.ProcessPayment never had it either (see
+// this package's and resource.PaymentRecordRemote's doc comments). The
+// payment record's id is PayPhoneRemote.ProcessPayment's resulting
+// PaymentID (== req.ClientTransactionID, see domain.PaymentRequest's doc
+// comment) so ConfirmPayment can look it up by the same id PayPhone later
+// echoes back.
 func (s *paymentService) ProcessPayment(ctx context.Context, req domain.PaymentRequest) (domain.PaymentResult, error) {
-	return s.deps.PayPhoneRemote.ProcessPayment(ctx, req)
+	result, err := s.deps.PayPhoneRemote.ProcessPayment(ctx, req)
+	if err != nil {
+		return domain.PaymentResult{}, err
+	}
+
+	at, err := s.deps.AuthRemote.GetAdminToken(ctx)
+	if err != nil {
+		return domain.PaymentResult{}, err
+	}
+
+	requestJSON, err := json.Marshal(req)
+	if err != nil {
+		return domain.PaymentResult{}, fmt.Errorf("marshal payment request: %w", err)
+	}
+
+	if err := s.deps.PaymentRecordRemote.CreatePayment(
+		ctx, result.PaymentID, req.UserID, paymentPlatform, paymentStatusPending, string(requestJSON), "", req.Financials.Total, at,
+	); err != nil {
+		return domain.PaymentResult{}, err
+	}
+
+	return result, nil
 }
 
 // ConfirmPayment mirrors the source repo's PayPhoneConfirm handler
 // (cmd/web/payphone_handlers.go) at the service layer — see
-// port/service.Payment's doc comment for the full behavior. Confirms
-// against PayPhone first; the order/basket sequence only runs once that
-// confirmation reports the transaction approved. A non-approved result
+// port/service.Payment's doc comment for the full behavior. Validates the
+// payment record ProcessPayment created is still PENDING (rejecting a
+// retried/replayed callback outright, mirroring the source's
+// ErrPaymentStatusValidationFailed check, before even calling PayPhone
+// again), confirms against PayPhone, then updates that record to
+// CONFIRMED or FAILED depending on the result — mirroring the source's own
+// "update the record either way, then fail the request if not approved"
+// order so a declined card still leaves an honest FAILED record behind.
+// The order/basket sequence only runs once PayPhone's confirmation
+// reports the transaction approved. A non-approved result
 // (confirmation.ErrorMessage set — PayPhone reports this as ordinary
 // response data, not a Go error, see resource.PayPhoneRemote's doc
 // comment) returns with newBasketID empty and no order/basket side
@@ -87,17 +142,42 @@ func (s *paymentService) ConfirmPayment(
 	ctx context.Context,
 	payphoneID, clientTransactionID, userID, basketID, paymentID, shippingAddressID string,
 ) (domain.PaymentConfirmation, string, error) {
+	at, err := s.deps.AuthRemote.GetAdminToken(ctx)
+	if err != nil {
+		return domain.PaymentConfirmation{}, "", err
+	}
+
+	existing, err := s.deps.PaymentRecordRemote.FindPayment(ctx, paymentID, at)
+	if err != nil {
+		return domain.PaymentConfirmation{}, "", err
+	}
+	if existing.Status != paymentStatusPending {
+		return domain.PaymentConfirmation{}, "", domain.ErrPaymentNotPending
+	}
+
 	confirmation, err := s.deps.PayPhoneRemote.ConfirmPayment(ctx, payphoneID, clientTransactionID)
 	if err != nil {
 		return domain.PaymentConfirmation{}, "", err
 	}
+
+	newStatus := paymentStatusConfirmed
 	if confirmation.ErrorMessage != "" {
-		return confirmation, "", nil
+		newStatus = paymentStatusFailed
 	}
 
-	at, err := s.deps.AuthRemote.GetAdminToken(ctx)
+	responseJSON, err := json.Marshal(confirmation)
 	if err != nil {
+		return domain.PaymentConfirmation{}, "", fmt.Errorf("marshal payment confirmation: %w", err)
+	}
+
+	if err := s.deps.PaymentRecordRemote.UpdatePayment(
+		ctx, paymentID, newStatus, existing.Request, string(responseJSON), at,
+	); err != nil {
 		return domain.PaymentConfirmation{}, "", err
+	}
+
+	if confirmation.ErrorMessage != "" {
+		return confirmation, "", nil
 	}
 
 	financials, err := s.deps.BasketRemote.ComputeFinancials(ctx, basketID, at)
